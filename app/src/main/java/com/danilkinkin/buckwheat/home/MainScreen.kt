@@ -42,6 +42,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -155,11 +156,12 @@ fun MainScreen(
         if (it) appViewModel.openSheet(PathState(ANALYTICS_SHEET))
     }
 
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorBackground),
-    ) {
+    CompositionLocalProvider(LocalDashboardSheetState provides dashboardSheetState) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorBackground),
+        ) {
         val contentHeight = constraints.maxHeight.toFloat()
         val contentWidth = constraints.maxWidth.toFloat()
 
@@ -285,6 +287,11 @@ fun MainScreen(
                                 .height(with(localDensity) { internalKeyboardHeight.toDp() })
                                 .fillMaxWidth()
                                 .keyboardDashboardSwipeGesture {
+                                    if (dashboardSheetState.isAnimationRunning ||
+                                        dashboardSheetState.currentValue == ModalBottomSheetValue.Expanded
+                                    ) {
+                                        return@keyboardDashboardSwipeGesture
+                                    }
                                     appViewModel.openSheet(PathState(DASHBOARD_SHEET))
                                 }
                         )
@@ -352,6 +359,7 @@ fun MainScreen(
             SnackbarHost()
         }
     }
+}
 }
 
 @Composable

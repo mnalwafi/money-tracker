@@ -10,11 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.ExperimentalMaterialApi
+import com.danilkinkin.buckwheat.base.ModalBottomSheetValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -31,10 +35,12 @@ import com.danilkinkin.buckwheat.editor.EditMode
 import com.danilkinkin.buckwheat.editor.EditStage
 import com.danilkinkin.buckwheat.editor.EditorViewModel
 import com.danilkinkin.buckwheat.editor.toolbar.restBudgetPill.RestBudgetPill
+import com.danilkinkin.buckwheat.home.LocalDashboardSheetState
 import com.danilkinkin.buckwheat.settings.SETTINGS_SHEET
 import com.danilkinkin.buckwheat.util.observeLiveData
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun EditorToolbar(
     spendsViewModel: SpendsViewModel = hiltViewModel(),
@@ -43,6 +49,8 @@ fun EditorToolbar(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val isDebug = appViewModel.isDebug.observeAsState(false)
+    val dashboardSheetState = LocalDashboardSheetState.current
+    var lastToolbarClickTime by remember { mutableLongStateOf(0L) }
     val mode by editorViewModel.mode.observeAsState(EditMode.ADD)
 
     val spendsCountScale = remember { Animatable(1f) }
@@ -81,6 +89,12 @@ fun EditorToolbar(
                 icon = painterResource(R.drawable.ic_dashboard),
                 contentDescription = stringResource(R.string.dashboard_title),
                 onClick = {
+                    val now = android.os.SystemClock.uptimeMillis()
+                    if (now - lastToolbarClickTime < 400L) return@BigIconButton
+                    if (dashboardSheetState?.isAnimationRunning == true) return@BigIconButton
+                    if (dashboardSheetState?.currentValue == ModalBottomSheetValue.Expanded) return@BigIconButton
+
+                    lastToolbarClickTime = now
                     appViewModel.openSheet(PathState(DASHBOARD_SHEET))
                 },
             )
@@ -89,7 +103,13 @@ fun EditorToolbar(
                 BigIconButton(
                     icon = painterResource(R.drawable.ic_developer_mode),
                     contentDescription = null,
-                    onClick = { appViewModel.openSheet(PathState(DEBUG_MENU_SHEET)) },
+                    onClick = {
+                        val now = android.os.SystemClock.uptimeMillis()
+                        if (now - lastToolbarClickTime >= 350L) {
+                            lastToolbarClickTime = now
+                            appViewModel.openSheet(PathState(DEBUG_MENU_SHEET))
+                        }
+                    },
                 )
             }
         }
@@ -105,7 +125,11 @@ fun EditorToolbar(
                 icon = painterResource(R.drawable.ic_settings),
                 contentDescription = null,
                 onClick = {
-                    appViewModel.openSheet(PathState(SETTINGS_SHEET))
+                    val now = android.os.SystemClock.uptimeMillis()
+                    if (now - lastToolbarClickTime >= 350L) {
+                        lastToolbarClickTime = now
+                        appViewModel.openSheet(PathState(SETTINGS_SHEET))
+                    }
                 },
             )
         }
