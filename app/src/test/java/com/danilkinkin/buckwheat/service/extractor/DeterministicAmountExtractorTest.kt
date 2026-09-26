@@ -1,0 +1,108 @@
+package com.danilkinkin.buckwheat.service.extractor
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import java.math.BigDecimal
+
+class DeterministicAmountExtractorTest {
+
+    private lateinit var extractor: DeterministicAmountExtractor
+
+    @Before
+    fun setUp() {
+        extractor = DeterministicAmountExtractor()
+    }
+
+    @Test
+    fun extract_qrisNotificationWithTimestampAndCallCenter_extractsExactAmountNotDate() {
+        val notification = "26/09/2026 19:23:41 - Transaksi Pembelian QRIS sebesar Rp13.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull("Expected extraction result, got null", result)
+        assertEquals(
+            "Expected amount 13000.00 instead of day of month 26",
+            BigDecimal("13000.00"),
+            result!!.amount
+        )
+        assertTrue(
+            "Expected currency to start with Rp",
+            result.currencySymbol?.startsWith("Rp", ignoreCase = true) == true
+        )
+        assertEquals("QRIS", result.merchant)
+    }
+
+    @Test
+    fun extract_attachedCurrencyWithoutSpace_extractsCorrectly() {
+        val notification = "Pembayaran QRIS ke Kopi Kenangan Rp18.000 berhasil"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull(result)
+        assertEquals(BigDecimal("18000.00"), result!!.amount)
+        assertTrue(result.currencySymbol?.startsWith("Rp", ignoreCase = true) == true)
+        assertEquals("Kopi Kenangan", result.merchant)
+    }
+
+    @Test
+    fun extract_indonesianBankNotificationWithDotSeparator() {
+        val notification = "Pembayaran Rp 75.000 ke Toko Jaya berhasil"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull(result)
+        assertEquals(BigDecimal("75000.00"), result!!.amount)
+        assertEquals("Jaya", result.merchant)
+    }
+
+    @Test
+    fun extract_englishNotificationWithDateAndCardEnding() {
+        val notification = "Debit alert: Your card ending in 4321 was debited USD 120.00 for payment at Amazon. Call Center 180012345"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull(result)
+        assertEquals(BigDecimal("120.00"), result!!.amount)
+        assertEquals("USD", result.currencySymbol)
+        assertEquals("Amazon", result.merchant)
+    }
+
+    @Test
+    fun extract_standaloneAmountWithDatePrefix_ignoresDateAndExtractsAmount() {
+        val notification = "26/09/2026 10:15:00 Paid 45.50 at Starbucks"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull(result)
+        assertEquals(
+            "Must ignore date '26' and extract actual payment amount '45.50'",
+            BigDecimal("45.50"),
+            result!!.amount
+        )
+        assertEquals("Starbucks", result.merchant)
+    }
+
+    @Test
+    fun extract_shorthandAmount_expandsMultiplier() {
+        val notification = "Pembayaran sebesar 200k ke Google Pay berhasil"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull(result)
+        assertEquals(BigDecimal("200000.00"), result!!.amount)
+        assertEquals("Google Pay", result.merchant)
+    }
+
+    @Test
+    fun extract_keywordBackedIntegerAmountWithDate() {
+        val notification = "Tagihan sebesar 15000 berhasil dibayar pada 26/09/2026"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull(result)
+        assertEquals(BigDecimal("15000.00"), result!!.amount)
+    }
+}

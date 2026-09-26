@@ -18,33 +18,43 @@ class DeterministicAmountExtractor @Inject constructor() {
     companion object {
         // Supported currencies and codes
         private const val CURRENCY_SYMBOLS = """[$€£¥₹₩₺₽฿₫]"""
-        private const val CURRENCY_CODES = """\b(?:Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)\b"""
-        private const val CURRENCY_REGEX = """(?i)(?:$CURRENCY_SYMBOLS|$CURRENCY_CODES)"""
+        private const val CURRENCY_CODE_NAMES = """(?:Rp\.?|Rs\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)"""
 
-        // Matches: $1,250.00, Rp 25.000, EUR 45.50
+        // Matches: $1,250.00, Rp 25.000, Rp13.000,00, EUR 45.50
         private val PREFIX_AMOUNT_PATTERN = Pattern.compile(
-            """($CURRENCY_REGEX)\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)"""
+            """(?i)($CURRENCY_SYMBOLS|\b$CURRENCY_CODE_NAMES)\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)"""
         )
 
         // Matches: 1,250.00 USD, 25.000 IDR, 45.50 €
         private val SUFFIX_AMOUNT_PATTERN = Pattern.compile(
-            """([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)\s*($CURRENCY_REGEX)"""
+            """(?i)\b([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)\s*($CURRENCY_SYMBOLS|$CURRENCY_CODE_NAMES\b)"""
         )
 
         // Matches shorthand notations: 200k, 200rb, 200 ribu, 1.5jt, 1.5 juta, 1.5m
         private val SHORTHAND_AMOUNT_PATTERN = Pattern.compile(
-            """(?i)(?:($CURRENCY_REGEX)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)(?:\s*($CURRENCY_REGEX))?\b"""
+            """(?i)(?:($CURRENCY_SYMBOLS|\b$CURRENCY_CODE_NAMES)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)(?:\s*($CURRENCY_SYMBOLS|$CURRENCY_CODE_NAMES\b))?\b"""
         )
 
-        // Fallback for amount without explicit currency: e.g., "paid 45.50" or "debited 25,000"
-        private val STANDALONE_AMOUNT_PATTERN = Pattern.compile(
-            """\b([0-9]{1,3}(?:[.,][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+[.,][0-9]{1,2}|[0-9]{2,})\b"""
+        // Formatted standalone numbers with decimals or thousands separators: e.g., "45.50" or "25,000" or "50.000"
+        private val FORMATTED_STANDALONE_PATTERN = Pattern.compile(
+            """\b([0-9]{1,3}(?:[.,][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+[.,][0-9]{1,2})\b"""
         )
+
+        // Keyword-backed standalone integers: e.g. "sebesar 50000", "paid 45", "amount 100"
+        private val KEYWORD_STANDALONE_PATTERN = Pattern.compile(
+            """(?i)\b(?:sebesar|amount\s+(?:of\s+)?|paid|spent|debited|credited|nominal|total|valued\s+at)\s+([0-9]+)\b"""
+        )
+
+        // Patterns to filter out dates, times, phone numbers, and card numbers before standalone amount extraction
+        private val DATE_PATTERN = Regex("""\b\d{1,4}[/\-.]\d{1,2}[/\-.]\d{1,4}\b""")
+        private val TIME_PATTERN = Regex("""\b\d{1,2}:\d{2}(?::\d{2})?\b""")
+        private val CALL_CENTER_PATTERN = Regex("""(?i)\b(?:call\s*center|hubungi|hotline|telp|cs|contact)\b.*?(\d{5,})""")
+        private val CARD_MASK_PATTERN = Regex("""(?i)\b(?:ending\s+in|card\s+|rekening\s+|rek\s+|acct?\s+)[xX*0-9]+\b""")
 
         // Expense merchant patterns
         private val EXPENSE_MERCHANT_PATTERNS = listOf(
-            Pattern.compile("""(?i)(?:payment\s+for\s+(?:subscribtion|subscription)\s+to|payment\s+for|subscription\s+to|subscribtion\s+to|paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke|bayar\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""),
-            Pattern.compile("""(?i)(?:at|to|in|for|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)""")
+            Pattern.compile("""(?i)(?:payment\s+for\s+(?:subscribtion|subscription)\s+to|payment\s+for|subscription\s+to|subscribtion\s+to|paid\s+to|paid\s+at|payment\s+to|payment\s+at|purchase\s+at|transaksi\s+pembelian(?:\s+di|\s+ke)?|pembelian(?:\s+di|\s+ke)?|pembayaran\s+(?:qris\s+)?(?:ke|di)|bayar\s+(?:ke|di)|transaksi\s+(?:di|ke))\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:Rp\.?|IDR|USD|EUR|[$€£¥₹₩₺₽฿₫]|\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b)|[\.,]|$)"""),
+            Pattern.compile("""(?i)(?:at|to|in|for|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:Rp\.?|IDR|USD|EUR|[$€£¥₹₩₺₽฿₫]|\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b)|[\.,]|$)""")
         )
 
         // Income source patterns
@@ -153,10 +163,29 @@ class DeterministicAmountExtractor @Inject constructor() {
             }
         }
 
-        // Try standalone amount pattern if currency was not adjacent
-        val standaloneMatcher = STANDALONE_AMOUNT_PATTERN.matcher(content)
-        while (standaloneMatcher.find()) {
-            val rawNum = standaloneMatcher.group(1)?.trim()
+        // Sanitize content from dates, times, phone numbers, and card numbers before standalone check
+        val sanitized = content
+            .replace(DATE_PATTERN, " ")
+            .replace(TIME_PATTERN, " ")
+            .replace(CALL_CENTER_PATTERN, " ")
+            .replace(CARD_MASK_PATTERN, " ")
+
+        // 4. Try formatted standalone numbers with decimal or thousand separators (e.g. "45.50", "25,000", "50.000")
+        val formattedMatcher = FORMATTED_STANDALONE_PATTERN.matcher(sanitized)
+        while (formattedMatcher.find()) {
+            val rawNum = formattedMatcher.group(1)?.trim()
+            if (rawNum != null) {
+                val parsed = parseAmountString(rawNum, null)
+                if (parsed != null && parsed > BigDecimal.ZERO) {
+                    return Pair(parsed, null)
+                }
+            }
+        }
+
+        // 5. Try keyword-backed integer standalone numbers (e.g. "sebesar 50000", "paid 45")
+        val keywordMatcher = KEYWORD_STANDALONE_PATTERN.matcher(sanitized)
+        if (keywordMatcher.find()) {
+            val rawNum = keywordMatcher.group(1)?.trim()
             if (rawNum != null) {
                 val parsed = parseAmountString(rawNum, null)
                 if (parsed != null && parsed > BigDecimal.ZERO) {
@@ -261,7 +290,7 @@ class DeterministicAmountExtractor @Inject constructor() {
         // 1. Search text body with patterns
         for (pattern in patterns) {
             val matcher = pattern.matcher(text)
-            if (matcher.find()) {
+            while (matcher.find()) {
                 val extracted = cleanMerchant(matcher.group(1))
                 if (extracted.isNotBlank() && !isGenericTitle(extracted)) {
                     return extracted
@@ -284,10 +313,13 @@ class DeterministicAmountExtractor @Inject constructor() {
 
     private fun cleanMerchant(raw: String?): String {
         if (raw == null) return ""
-        return raw.trim()
+        val cleaned = raw.trim()
             .trimEnd('.', ',', '!', '?', ';', ':', '-', ' ')
             .trimStart('.', ',', '!', '?', ';', ':', '-', ' ')
             .replace(Regex("""^(the|pt|cv|toko)\s+""", RegexOption.IGNORE_CASE), "")
             .trim()
+        if (cleaned.all { it.isDigit() }) return ""
+        if (cleaned.matches(Regex("""^(?:Rp\.?|IDR|USD|EUR)\b.*""", RegexOption.IGNORE_CASE))) return ""
+        return cleaned
     }
 }

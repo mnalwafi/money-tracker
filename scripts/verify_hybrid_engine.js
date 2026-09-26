@@ -244,6 +244,7 @@ assert.strictEqual(parseShorthand("200k"), "200000.00");
 assert.strictEqual(parseShorthand("Pembayaran sebesar 200k ke Google Pay berhasil"), "200000.00");
 assert.strictEqual(parseShorthand("1.5jt"), "1500000.00");
 assert.strictEqual(parseShorthand("50rb"), "50000.00");
+assert.strictEqual(parseAmountString("13.000,00", "Rp"), "13000.00");
 console.log('✓ All deterministic number formats and shorthand multipliers parsed perfectly!');
 
 // Test 5: Successful shorthand payment
@@ -252,6 +253,19 @@ const successClass = classify(successPayment);
 assert.strictEqual(successClass.type, 'EXPENSE');
 assert.strictEqual(parseShorthand(successPayment), "200000.00");
 console.log(`✓ Successful payment with shorthand parsed: [${successClass.type}] -> 200000.00 IDR`);
+
+// Test 5b: QRIS with timestamp, date, and attached Rp currency
+const qrisNotification = "26/09/2026 19:23:41 - Transaksi Pembelian QRIS sebesar Rp13.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017";
+const qrisClass = classify(qrisNotification);
+assert.strictEqual(qrisClass.type, 'EXPENSE');
+
+const CURRENCY_SYMBOLS = "[$€£¥₹₩₺₽฿₫]";
+const CURRENCY_CODES = "(?:Rp\\.?|Rs\\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)";
+const PREFIX_PATTERN = new RegExp("(" + CURRENCY_SYMBOLS + "|\\b" + CURRENCY_CODES + ")\\s*([0-9]{1,3}(?:[.,\\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)", "i");
+const qrisMatch = qrisNotification.match(PREFIX_PATTERN);
+assert.ok(qrisMatch, "Must match prefix currency pattern for Rp13.000,00");
+assert.strictEqual(parseAmountString(qrisMatch[2], qrisMatch[1]), "13000.00");
+console.log(`✓ QRIS notification with leading date correctly parsed as: 13000.00 IDR (NOT 26!)`);
 
 // Test 6: Cross-App Payment Gateway Correlation (e.g. BRImo -> Google Pay -> Google One)
 const GATEWAY_DEFINITIONS = [
