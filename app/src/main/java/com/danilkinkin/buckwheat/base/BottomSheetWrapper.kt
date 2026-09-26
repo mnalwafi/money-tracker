@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -127,7 +128,7 @@ fun BottomSheetWrapper(
     ModalBottomSheetLayout(
         modifier = modifier,
         cancelable = cancelable,
-        sheetBackgroundColor = MaterialTheme.colorScheme.surface,
+        sheetBackgroundColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
         sheetState = state,
         predictiveBackProgress = predictiveBackProgress,
         sheetShape = MaterialTheme.shapes.extraLarge.copy(

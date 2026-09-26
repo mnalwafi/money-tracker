@@ -36,6 +36,7 @@ import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.data.entities.RecurrenceInterval
 import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import com.danilkinkin.buckwheat.util.numberFormat
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -76,14 +77,14 @@ fun RecurringTransactionsSheet(
         modifier = Modifier.fillMaxWidth(),
     ) {
         // Constrain sheet height to 88% of screen height to leave clear top breathing room
-        val maxSheetHeight = maxHeight * 0.88f
+        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Physics.sheetMaxHeightRatio
 
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(maxSheetHeight),
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+            shape = BuckwheatDesignSystem.Shapes.sheet,
+            color = BuckwheatDesignSystem.Colors.sheetContainer,
             tonalElevation = 1.dp,
         ) {
             Column(
@@ -93,15 +94,15 @@ fun RecurringTransactionsSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp, bottom = 4.dp),
+                        .padding(top = BuckwheatDesignSystem.Spacing.m, bottom = BuckwheatDesignSystem.Spacing.xs),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
                         modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
+                            .width(BuckwheatDesignSystem.Controls.dragHandleWidth)
+                            .height(BuckwheatDesignSystem.Controls.dragHandleHeight)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+                            .background(BuckwheatDesignSystem.Colors.dragHandle),
                     )
                 }
 
@@ -140,6 +141,7 @@ fun RecurringTransactionsSheet(
                     if (editorActive) {
                         RecurringTransactionEditor(
                             initialTransaction = editingTransaction,
+                            currency = currency,
                             onSave = { saved ->
                                 viewModel.saveRecurring(saved)
                                 editingTransaction = null
@@ -163,7 +165,7 @@ fun RecurringTransactionsSheet(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                                    .padding(horizontal = BuckwheatDesignSystem.Spacing.xxl, vertical = BuckwheatDesignSystem.Spacing.s),
                             ) {
                                 Text(
                                     text = stringResource(R.string.recurring_transactions_title),
@@ -179,7 +181,7 @@ fun RecurringTransactionsSheet(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .weight(1f)
-                                        .padding(horizontal = 32.dp, vertical = 24.dp),
+                                        .padding(horizontal = BuckwheatDesignSystem.Spacing.xxxl, vertical = BuckwheatDesignSystem.Spacing.xxl),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Column(
@@ -192,7 +194,7 @@ fun RecurringTransactionsSheet(
                                             modifier = Modifier.size(64.dp),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                                         )
-                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.l))
                                         Text(
                                             text = stringResource(R.string.recurring_no_items),
                                             style = MaterialTheme.typography.titleMedium,
@@ -200,24 +202,28 @@ fun RecurringTransactionsSheet(
                                             color = MaterialTheme.colorScheme.onSurface,
                                             textAlign = TextAlign.Center,
                                         )
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.s))
                                         Text(
                                             text = stringResource(R.string.recurring_no_items_desc),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center,
                                         )
-                                        Spacer(modifier = Modifier.height(24.dp))
+                                        Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.xxl))
                                         Button(
                                             onClick = { isCreatingNew = true },
-                                            shape = RoundedCornerShape(14.dp),
+                                            shape = BuckwheatDesignSystem.Shapes.input,
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                            ),
                                         ) {
                                             Icon(
                                                 painter = painterResource(R.drawable.ic_add),
                                                 contentDescription = null,
                                                 modifier = Modifier.size(18.dp),
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(BuckwheatDesignSystem.Spacing.s))
                                             Text(stringResource(R.string.add_recurring_transaction))
                                         }
                                     }
@@ -228,8 +234,8 @@ fun RecurringTransactionsSheet(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .weight(1f)
-                                        .padding(horizontal = 16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                        .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding),
+                                    verticalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.m),
                                 ) {
                                     // Summary Card
                                     item {
@@ -239,14 +245,14 @@ fun RecurringTransactionsSheet(
                                         Card(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = 4.dp),
-                                            shape = RoundedCornerShape(20.dp),
+                                                .padding(vertical = BuckwheatDesignSystem.Spacing.xs),
+                                            shape = BuckwheatDesignSystem.Shapes.card,
                                             colors = CardDefaults.cardColors(
                                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                             ),
-                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                                            border = BuckwheatDesignSystem.Colors.cardBorder,
                                         ) {
-                                            Column(modifier = Modifier.padding(16.dp)) {
+                                            Column(modifier = Modifier.padding(BuckwheatDesignSystem.Spacing.cardPadding)) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
                                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -259,7 +265,7 @@ fun RecurringTransactionsSheet(
                                                             fontWeight = FontWeight.SemiBold,
                                                             color = MaterialTheme.colorScheme.onSurface,
                                                         )
-                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.xs))
                                                         Text(
                                                             text = stringResource(R.string.reserved_in_period, formattedReserved),
                                                             style = MaterialTheme.typography.bodyMedium,
@@ -284,7 +290,7 @@ fun RecurringTransactionsSheet(
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp),
+                                                modifier = Modifier.padding(top = BuckwheatDesignSystem.Spacing.m, bottom = BuckwheatDesignSystem.Spacing.xs, start = BuckwheatDesignSystem.Spacing.xs),
                                             )
                                         }
                                         items(dueSoon, key = { "soon_${it.id}" }) { item ->
@@ -307,7 +313,7 @@ fun RecurringTransactionsSheet(
                                                 style = MaterialTheme.typography.titleSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 4.dp),
+                                                modifier = Modifier.padding(top = BuckwheatDesignSystem.Spacing.m, bottom = BuckwheatDesignSystem.Spacing.xs, start = BuckwheatDesignSystem.Spacing.xs),
                                             )
                                         }
                                         items(upcoming, key = { "up_${it.id}" }) { item ->
@@ -324,7 +330,7 @@ fun RecurringTransactionsSheet(
                                     }
 
                                     item {
-                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.l))
                                     }
                                 }
 
@@ -337,7 +343,7 @@ fun RecurringTransactionsSheet(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                            .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding, vertical = BuckwheatDesignSystem.Spacing.m)
                                             .padding(bottom = navigationBarHeight),
                                         contentAlignment = Alignment.Center,
                                     ) {
@@ -345,8 +351,8 @@ fun RecurringTransactionsSheet(
                                             onClick = { isCreatingNew = true },
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(52.dp),
-                                            shape = RoundedCornerShape(16.dp),
+                                                .height(BuckwheatDesignSystem.Controls.buttonHeight),
+                                            shape = BuckwheatDesignSystem.Shapes.button,
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary,
                                                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -357,7 +363,7 @@ fun RecurringTransactionsSheet(
                                                 contentDescription = null,
                                                 modifier = Modifier.size(20.dp),
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(BuckwheatDesignSystem.Spacing.s))
                                             Text(
                                                 text = stringResource(R.string.add_recurring_transaction),
                                                 style = MaterialTheme.typography.titleSmall,
@@ -406,7 +412,7 @@ private fun RecurringItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = BuckwheatDesignSystem.Shapes.card,
         colors = CardDefaults.cardColors(
             containerColor = if (item.isActive) {
                 MaterialTheme.colorScheme.surfaceContainer
@@ -414,9 +420,9 @@ private fun RecurringItemCard(
                 MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f)
             },
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        border = BuckwheatDesignSystem.Colors.cardBorder,
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(BuckwheatDesignSystem.Spacing.cardPadding)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -431,31 +437,31 @@ private fun RecurringItemCard(
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.s),
                     ) {
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier.padding(top = BuckwheatDesignSystem.Spacing.xs),
                         ) {
                             Text(
                                 text = intervalText,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = BuckwheatDesignSystem.Spacing.s, vertical = BuckwheatDesignSystem.Spacing.xxs),
                             )
                         }
                         if (item.autoDeduct) {
                             Surface(
                                 shape = CircleShape,
                                 color = MaterialTheme.colorScheme.tertiaryContainer,
-                                modifier = Modifier.padding(top = 4.dp),
+                                modifier = Modifier.padding(top = BuckwheatDesignSystem.Spacing.xs),
                             ) {
                                 Text(
                                     text = "Auto",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    modifier = Modifier.padding(horizontal = BuckwheatDesignSystem.Spacing.s, vertical = BuckwheatDesignSystem.Spacing.xxs),
                                 )
                             }
                         }
@@ -479,7 +485,7 @@ private fun RecurringItemCard(
             }
 
             if (item.isActive && daysDiff <= 7) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.m))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -488,11 +494,15 @@ private fun RecurringItemCard(
                     TextButton(onClick = onSkip) {
                         Text(stringResource(R.string.recurring_skip))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(BuckwheatDesignSystem.Spacing.s))
                     Button(
                         onClick = onPayNow,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = BuckwheatDesignSystem.Spacing.l, vertical = 6.dp),
+                        shape = BuckwheatDesignSystem.Shapes.medium,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                        ),
                     ) {
                         Text(stringResource(R.string.recurring_mark_paid))
                     }

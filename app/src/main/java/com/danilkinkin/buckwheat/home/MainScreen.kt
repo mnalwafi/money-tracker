@@ -76,9 +76,14 @@ import com.danilkinkin.buckwheat.history.History
 import com.danilkinkin.buckwheat.keyboard.Keyboard
 import com.danilkinkin.buckwheat.onboarding.ON_BOARDING_SHEET
 import com.danilkinkin.buckwheat.recalcBudget.RECALCULATE_DAILY_BUDGET_SHEET
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import com.danilkinkin.buckwheat.base.ModalBottomSheetValue
+import com.danilkinkin.buckwheat.base.rememberModalBottomSheetState
 import com.danilkinkin.buckwheat.ui.colorBackground
 import com.danilkinkin.buckwheat.ui.colorEditor
 import com.danilkinkin.buckwheat.ui.colorOnEditor
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import com.danilkinkin.buckwheat.ui.isNightMode
 import com.danilkinkin.buckwheat.util.observeLiveData
 import com.danilkinkin.buckwheat.util.setSystemStyle
@@ -92,6 +97,13 @@ fun MainScreen(
     appViewModel: AppViewModel = viewModel(),
 ) {
     val topSheetState = rememberSwipeableState(TopSheetValue.HalfExpanded)
+    val dashboardSheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        animationSpec = spring(
+            dampingRatio = BuckwheatDesignSystem.Physics.springDampingRatio,
+            stiffness = BuckwheatDesignSystem.Physics.springStiffness,
+        ),
+    )
     val coroutineScope = rememberCoroutineScope()
     val nightMode = remember { mutableStateOf(false) }
 
@@ -352,7 +364,10 @@ fun MainScreen(
             )
         }
 
-        BottomSheets(activityResultRegistryOwner)
+        BottomSheets(
+            activityResultRegistryOwner = activityResultRegistryOwner,
+            dashboardSheetState = dashboardSheetState,
+        )
 
         if (windowSizeClass == WindowWidthSizeClass.Compact) {
             SnackbarHost()
@@ -397,6 +412,8 @@ fun Modifier.keyboardDashboardSwipeGesture(
     val touchSlop = viewConfiguration.touchSlop
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
+        val velocityTracker = VelocityTracker()
+        velocityTracker.addPosition(down.uptimeMillis, down.position)
         var totalDragY = 0f
         var totalDragX = 0f
         var isUpwardDrag = false
@@ -406,13 +423,18 @@ fun Modifier.keyboardDashboardSwipeGesture(
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
             if (!change.pressed) break
 
+            velocityTracker.addPosition(change.uptimeMillis, change.position)
             val dragY = change.position.y - change.previousPosition.y
             val dragX = change.position.x - change.previousPosition.x
             totalDragY += dragY
             totalDragX += dragX
 
-            // Distinct upward drag: vertical displacement > 1.75 * touchSlop (~28px) and primarily vertical
-            if (totalDragY < -touchSlop * 1.75f && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.5f) {
+            val currentVelocity = velocityTracker.calculateVelocity()
+            // Detect either high-velocity upward flick or deliberate upward displacement
+            val isFastUpwardFlick = currentVelocity.y < -400f && totalDragY < -touchSlop
+            val isDisplacementDrag = totalDragY < -touchSlop * 1.75f && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.5f
+
+            if (isFastUpwardFlick || isDisplacementDrag) {
                 isUpwardDrag = true
                 change.consume()
                 break

@@ -38,7 +38,12 @@ import com.danilkinkin.buckwheat.wallet.*
 import kotlinx.coroutines.launch
 import java.util.*
 
+import androidx.compose.animation.core.spring
 import androidx.compose.ui.zIndex
+import com.danilkinkin.buckwheat.base.ModalBottomSheetState
+import com.danilkinkin.buckwheat.base.ModalBottomSheetValue
+import com.danilkinkin.buckwheat.base.rememberModalBottomSheetState
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -46,6 +51,13 @@ fun BottomSheets(
     activityResultRegistryOwner: ActivityResultRegistryOwner?,
     appViewModel: AppViewModel = hiltViewModel(),
     spendsViewModel: SpendsViewModel = hiltViewModel(),
+    dashboardSheetState: ModalBottomSheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        animationSpec = spring(
+            dampingRatio = BuckwheatDesignSystem.Physics.springDampingRatio,
+            stiffness = BuckwheatDesignSystem.Physics.springStiffness,
+        ),
+    ),
 ) {
     val isDebug = appViewModel.isDebug.observeAsState(false)
     val coroutineScope = rememberCoroutineScope()
@@ -58,9 +70,11 @@ fun BottomSheets(
         name = DASHBOARD_SHEET,
         modifier = Modifier.zIndex(1f),
         showDragHandle = false,
+        state = dashboardSheetState,
     ) { state ->
         val editorViewModel: EditorViewModel = hiltViewModel()
         DashboardScreen(
+            sheetState = state,
             onQuickAdd = {
                 coroutineScope.launch { state.hide() }
             },

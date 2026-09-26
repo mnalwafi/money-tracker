@@ -22,8 +22,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.LocalWindowInsets
 import com.danilkinkin.buckwheat.R
 import com.danilkinkin.buckwheat.base.LocalBottomSheetScrollState
+import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.data.entities.RecurrenceInterval
 import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
+import com.danilkinkin.buckwheat.util.fixedNumberString
+import com.danilkinkin.buckwheat.util.numberFormat
+import com.danilkinkin.buckwheat.util.visualTransformationAsCurrency
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -35,18 +40,27 @@ const val RECURRING_TRANSACTION_EDITOR_SHEET = "recurring.editor"
 @Composable
 fun RecurringTransactionEditor(
     initialTransaction: RecurringTransaction? = null,
+    currency: ExtendCurrency = ExtendCurrency.none(),
     onSave: (RecurringTransaction) -> Unit,
     onDelete: ((RecurringTransaction) -> Unit)? = null,
     onClose: () -> Unit,
 ) {
-    val localBottomSheetScrollState = LocalBottomSheetScrollState.current
+    val context = LocalContext.current
     val navigationBarHeight = androidx.compose.ui.unit.max(
         LocalWindowInsets.current.calculateBottomPadding(),
         16.dp,
     )
 
     var name by remember { mutableStateOf(initialTransaction?.name ?: "") }
-    var amountText by remember { mutableStateOf(initialTransaction?.amount?.toPlainString() ?: "") }
+    var amountText by remember {
+        mutableStateOf(
+            if (initialTransaction != null) {
+                fixedNumberString(initialTransaction.amount.toPlainString())
+            } else {
+                ""
+            }
+        )
+    }
     var categoryTag by remember { mutableStateOf(initialTransaction?.categoryTag ?: "") }
     var interval by remember { mutableStateOf(initialTransaction?.interval ?: RecurrenceInterval.MONTHLY) }
     var nextOccurrence by remember { mutableStateOf(initialTransaction?.nextOccurrence ?: LocalDate.now()) }
@@ -57,6 +71,16 @@ fun RecurringTransactionEditor(
     var nameError by remember { mutableStateOf(false) }
     var amountError by remember { mutableStateOf(false) }
 
+    val currSymbol = remember(currency) {
+        numberFormat(
+            context,
+            BigDecimal.ZERO,
+            currency,
+            maximumFractionDigits = 0,
+            minimumFractionDigits = 0,
+        ).filter { it != '0' }.trim()
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color.Transparent,
@@ -65,9 +89,9 @@ fun RecurringTransactionEditor(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(top = 8.dp, bottom = navigationBarHeight + 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = BuckwheatDesignSystem.Spacing.xxl)
+                .padding(top = BuckwheatDesignSystem.Spacing.s, bottom = navigationBarHeight + BuckwheatDesignSystem.Spacing.l),
+            verticalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.formFieldGap),
         ) {
             // Header with back navigation
             Row(
@@ -78,9 +102,10 @@ fun RecurringTransactionEditor(
                     Icon(
                         painter = painterResource(R.drawable.ic_arrow_back),
                         contentDescription = stringResource(android.R.string.cancel),
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(BuckwheatDesignSystem.Spacing.xs))
                 Text(
                     text = if (initialTransaction == null) {
                         stringResource(R.string.add_recurring_transaction)
@@ -105,50 +130,97 @@ fun RecurringTransactionEditor(
                 isError = nameError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = BuckwheatDesignSystem.Shapes.input,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             )
 
-            // Amount
+            // Amount Input with Auto-Formatted Currency
             OutlinedTextField(
                 value = amountText,
-                onValueChange = {
-                    amountText = it
+                onValueChange = { input ->
+                    val sanitized = fixedNumberString(input.replace(',', '.'))
+                    amountText = sanitized
                     amountError = false
                 },
                 label = { Text(stringResource(R.string.recurring_amount_label)) },
+                placeholder = { Text("0") },
+                prefix = if (currSymbol.isNotEmpty()) {
+                    {
+                        Text(
+                            text = "$currSymbol ",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                } else null,
+                visualTransformation = visualTransformationAsCurrency(
+                    context = context,
+                    currency = currency,
+                    hintColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = amountError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = BuckwheatDesignSystem.Shapes.input,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             )
 
             // Recurrence Interval Chips
-            Text(
-                text = stringResource(R.string.recurring_interval_label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.labelToInputGap),
             ) {
-                RecurrenceInterval.values().forEach { item ->
-                    FilterChip(
-                        selected = interval == item,
-                        onClick = { interval = item },
-                        label = {
-                            Text(
-                                when (item) {
-                                    RecurrenceInterval.DAILY -> stringResource(R.string.interval_daily)
-                                    RecurrenceInterval.WEEKLY -> stringResource(R.string.interval_weekly)
-                                    RecurrenceInterval.MONTHLY -> stringResource(R.string.interval_monthly)
-                                    RecurrenceInterval.YEARLY -> stringResource(R.string.interval_yearly)
-                                }
-                            )
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
+                Text(
+                    text = stringResource(R.string.recurring_interval_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.s),
+                ) {
+                    RecurrenceInterval.values().forEach { item ->
+                        FilterChip(
+                            selected = interval == item,
+                            onClick = { interval = item },
+                            label = {
+                                Text(
+                                    when (item) {
+                                        RecurrenceInterval.DAILY -> stringResource(R.string.interval_daily)
+                                        RecurrenceInterval.WEEKLY -> stringResource(R.string.interval_weekly)
+                                        RecurrenceInterval.MONTHLY -> stringResource(R.string.interval_monthly)
+                                        RecurrenceInterval.YEARLY -> stringResource(R.string.interval_yearly)
+                                    }
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = BuckwheatDesignSystem.Shapes.medium,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            ),
+                        )
+                    }
                 }
             }
 
@@ -157,16 +229,16 @@ fun RecurringTransactionEditor(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showDatePicker = true },
-                shape = RoundedCornerShape(16.dp),
+                shape = BuckwheatDesignSystem.Shapes.card,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                border = BuckwheatDesignSystem.Colors.cardBorder,
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(BuckwheatDesignSystem.Spacing.cardPadding),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -180,6 +252,7 @@ fun RecurringTransactionEditor(
                             text = nextOccurrence.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     Icon(
@@ -197,29 +270,44 @@ fun RecurringTransactionEditor(
                 label = { Text(stringResource(R.string.recurring_category_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = BuckwheatDesignSystem.Shapes.input,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
             )
 
             // Auto-deduct toggle
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = BuckwheatDesignSystem.Shapes.card,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                border = BuckwheatDesignSystem.Colors.cardBorder,
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(BuckwheatDesignSystem.Spacing.cardPadding),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = BuckwheatDesignSystem.Spacing.l)
+                    ) {
                         Text(
                             text = stringResource(R.string.recurring_auto_deduct),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = stringResource(R.string.recurring_auto_deduct_desc),
@@ -237,16 +325,16 @@ fun RecurringTransactionEditor(
             // Active toggle (if editing)
             if (initialTransaction != null) {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = BuckwheatDesignSystem.Shapes.card,
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                    border = BuckwheatDesignSystem.Colors.cardBorder,
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
+                            .padding(BuckwheatDesignSystem.Spacing.cardPadding),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -254,6 +342,7 @@ fun RecurringTransactionEditor(
                             text = stringResource(R.string.recurring_active),
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Switch(
                             checked = isActive,
@@ -263,12 +352,12 @@ fun RecurringTransactionEditor(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.s))
 
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.m),
             ) {
                 if (initialTransaction != null && onDelete != null) {
                     OutlinedButton(
@@ -276,8 +365,11 @@ fun RecurringTransactionEditor(
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error,
                         ),
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(BuckwheatDesignSystem.Controls.buttonHeight),
+                        shape = BuckwheatDesignSystem.Shapes.button,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
                     ) {
                         Text(stringResource(R.string.recurring_delete))
                     }
@@ -307,10 +399,19 @@ fun RecurringTransactionEditor(
                             onSave(result)
                         }
                     },
-                    modifier = Modifier.weight(1f).height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(BuckwheatDesignSystem.Controls.buttonHeight),
+                    shape = BuckwheatDesignSystem.Shapes.button,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
                 ) {
-                    Text(stringResource(R.string.apply))
+                    Text(
+                        text = stringResource(R.string.apply),
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }
@@ -340,9 +441,17 @@ fun RecurringTransactionEditor(
                 TextButton(onClick = { showDatePicker = false }) {
                     Text(stringResource(android.R.string.cancel))
                 }
-            }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
         ) {
-            androidx.compose.material3.DatePicker(state = datePickerState)
+            DatePicker(
+                state = datePickerState,
+                colors = DatePickerDefaults.colors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                ),
+            )
         }
     }
 }

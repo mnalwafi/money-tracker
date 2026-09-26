@@ -10,6 +10,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,14 +19,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -35,13 +42,18 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.LocalWindowInsets
 import com.danilkinkin.buckwheat.R
+import com.danilkinkin.buckwheat.base.ModalBottomSheetState
+import com.danilkinkin.buckwheat.base.ModalBottomSheetValue
 import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
 import com.danilkinkin.buckwheat.data.entities.Transaction
 import com.danilkinkin.buckwheat.data.entities.TransactionType
 import com.danilkinkin.buckwheat.ui.colorBad
 import com.danilkinkin.buckwheat.ui.colorGood
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import com.danilkinkin.buckwheat.util.numberFormat
 import com.danilkinkin.buckwheat.util.prettyDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -49,8 +61,10 @@ import java.time.temporal.ChronoUnit
 
 const val DASHBOARD_SHEET = "dashboard"
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DashboardScreen(
+    sheetState: ModalBottomSheetState? = null,
     onQuickAdd: () -> Unit = {},
     onOpenRecurring: () -> Unit = {},
     onOpenHistory: () -> Unit = {},
@@ -60,6 +74,7 @@ fun DashboardScreen(
     onClose: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     val navigationBarHeight = androidx.compose.ui.unit.max(
         LocalWindowInsets.current.calculateBottomPadding(),
@@ -69,33 +84,36 @@ fun DashboardScreen(
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth(),
     ) {
-        // Constrain sheet height to 88% of screen height to leave clear top breathing room and visible backdrop
-        val maxSheetHeight = maxHeight * 0.88f
+        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Physics.sheetMaxHeightRatio
 
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(maxSheetHeight),
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+            shape = BuckwheatDesignSystem.Shapes.sheet,
+            color = BuckwheatDesignSystem.Colors.sheetContainer,
             tonalElevation = 1.dp,
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
             ) {
-                // Centered Material You Drag Handle Pill
-                DashboardDragHandle()
+                // Centered Material You Drag Handle Pill with 1:1 drag-down tracking & velocity snap
+                DashboardDragHandle(
+                    modifier = Modifier.sheetDragDownGesture(sheetState, coroutineScope, onClose)
+                )
 
-                // Clean Header Title & Date (No close or wallet icons)
-                DashboardHeader()
+                // Clean Header Title & Date with 1:1 drag-down tracking & velocity snap
+                DashboardHeader(
+                    modifier = Modifier.sheetDragDownGesture(sheetState, coroutineScope, onClose)
+                )
 
                 // Scrollable Content
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                        .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding),
+                    verticalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.sectionGap),
                 ) {
                     // Hero Card: Safe Allowance Today & Period Progress
                     HeroAllowanceCard(
@@ -124,7 +142,7 @@ fun DashboardScreen(
                         onViewHistory = onOpenHistory,
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.s))
                 }
 
                 // Quick-Add Sticky Action Bar
@@ -147,15 +165,15 @@ fun DashboardDragHandle(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp),
+            .padding(top = BuckwheatDesignSystem.Spacing.m, bottom = BuckwheatDesignSystem.Spacing.xs),
         contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .width(36.dp)
-                .height(4.dp)
+                .width(BuckwheatDesignSystem.Controls.dragHandleWidth)
+                .height(BuckwheatDesignSystem.Controls.dragHandleHeight)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+                .background(BuckwheatDesignSystem.Colors.dragHandle),
         )
     }
 }
@@ -170,7 +188,7 @@ private fun DashboardHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 6.dp),
+            .padding(horizontal = BuckwheatDesignSystem.Spacing.xl, vertical = 6.dp),
     ) {
         Text(
             text = stringResource(R.string.dashboard_title),
@@ -183,6 +201,44 @@ private fun DashboardHeader(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/**
+ * 1:1 Touch tracking and velocity-sensitive fling snap gesture for dismissing the dashboard sheet.
+ */
+@OptIn(ExperimentalMaterialApi::class)
+fun Modifier.sheetDragDownGesture(
+    sheetState: ModalBottomSheetState?,
+    coroutineScope: CoroutineScope,
+    onClose: () -> Unit,
+): Modifier = if (sheetState == null) this else this.pointerInput(sheetState) {
+    val velocityTracker = VelocityTracker()
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        velocityTracker.resetTracking()
+        velocityTracker.addPosition(down.uptimeMillis, down.position)
+
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Main)
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (!change.pressed) break
+
+            velocityTracker.addPosition(change.uptimeMillis, change.position)
+            val dragY = change.position.y - change.previousPosition.y
+            if (dragY != 0f) {
+                change.consume()
+                sheetState.performDrag(dragY)
+            }
+        }
+
+        val velocity = velocityTracker.calculateVelocity()
+        coroutineScope.launch {
+            sheetState.performFling(velocity.y)
+            if (sheetState.currentValue == ModalBottomSheetValue.Hidden) {
+                onClose()
+            }
+        }
     }
 }
 
