@@ -143,4 +143,23 @@
   <string name="confirm_finish_budget_title">Finish budget</string>
   <string name="confirm_finish_budget_description">Your current budget will be completed, and you will no longer be able to make any further expenses</string>
   <string name="confirm_finish_budget">Finish budget</string>
+  <string name="cancel">Cancel</string>
+
+  <string name="notification_capture_title">Notification Expense Capture</string>
+  <string name="notification_capture_desc">Automatically detect and prompt to log expenses from banking and payment notifications</string>
+  <string name="notification_permission_needed_dialog_title">Notification Access Required</string>
+  <string name="notification_permission_needed_dialog_desc">To automatically detect payments, Buckwheat needs permission to read notifications. Please enable Notification Access for Buckwheat in your device system settings.</string>
+  <string name="notification_permission_open_settings">Open Settings</string>
+
+  <string name="notification_channel_expense_name">Expense Alerts</string>
+  <string name="notification_channel_expense_desc">Prompts to confirm and categorize detected payment expenses</string>
+  <string name="expense_detected_notification_title">Spent %1$s at %2$s?</string>
+  <string name="expense_detected_notification_body">Tap to log or categorize this expense</string>
+  <string name="log_expense_action">Log</string>
+  <string name="dismiss_action">Dismiss</string>
+
+  <string name="pending_expense_banner_title">Expense Detected</string>
+  <string name="pending_expense_prompt">Spent %1$s at %2$s? Tap to confirm or categorize.</string>
+  <string name="pending_expense_confirm">Log</string>
+  <string name="pending_expense_edit">Edit</string>
 </resources>

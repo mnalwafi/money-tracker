@@ -12,6 +12,7 @@ import javax.inject.Inject
 
 val debugStoreKey = booleanPreferencesKey("debug")
 val showSpentCardByDefaultStoreKey = booleanPreferencesKey("showSpentCardByDefault")
+val autoExpenseCaptureStoreKey = booleanPreferencesKey("autoExpenseCapture")
 
 enum class TUTORIAL_STAGE {
     NONE,
@@ -36,6 +37,16 @@ class SettingsRepository @Inject constructor(
         it[name.key]?.let { value ->
             TUTORIAL_STAGE.valueOf(value)
         } ?: TUTORIAL_STAGE.NONE
+    }
+
+    fun isAutoExpenseCaptureEnabled() = context.settingsDataStore.data.map {
+        it[autoExpenseCaptureStoreKey] ?: false
+    }
+
+    suspend fun switchAutoExpenseCapture(isEnabled: Boolean) {
+        context.settingsDataStore.edit {
+            it[autoExpenseCaptureStoreKey] = isEnabled
+        }
     }
 
     suspend fun switchDebug(isDebug: Boolean) {

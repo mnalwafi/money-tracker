@@ -320,6 +320,21 @@ fun MainScreen(
                     }
                 }
             }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = windowInsets.calculateTopPadding() + 8.dp)
+                .fillMaxWidth()
+        ) {
+            PendingExpenseBanner(
+                onEditExpense = {
+                    if (windowSizeClass == WindowWidthSizeClass.Compact) {
+                        coroutineScope.launch {
+                            topSheetState.animateTo(TopSheetValue.HalfExpanded)
+                        }
+                    }
+                }
+            )
         }
 
         BottomSheets(activityResultRegistryOwner)

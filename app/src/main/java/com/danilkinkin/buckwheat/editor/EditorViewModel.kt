@@ -43,6 +43,17 @@ class EditorViewModel @Inject constructor(
         stage.value = EditStage.CREATING_SPENT
     }
 
+    fun prepareSpentFromCapture(amount: BigDecimal, merchant: String, date: Date = Date()) {
+        editedTransaction = null
+        currentSpent = amount
+        currentDate = date
+        currentComment.value = merchant
+        rawSpentValue.value = tryConvertStringToNumber(amount.toString()).join(third = false)
+
+        stage.value = EditStage.EDIT_SPENT
+        mode.value = EditMode.ADD
+    }
+
     fun modifyEditingSpent(value: BigDecimal) {
         currentSpent = value
 
