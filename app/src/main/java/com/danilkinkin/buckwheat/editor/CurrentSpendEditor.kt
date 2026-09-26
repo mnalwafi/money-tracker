@@ -113,7 +113,23 @@ fun CurrentSpendEditor(
         }
     }
 
-    BoxWithConstraints(modifier) {
+    val onChangeValueCallback = remember(editorViewModel, mode) {
+        { input: String ->
+            val fixed = fixedNumberString(input)
+            val converted = tryConvertStringToNumber(fixed)
+
+            editorViewModel.rawSpentValue.value = fixed
+            editorViewModel.modifyEditingSpent(converted.join().toBigDecimal())
+
+            if (fixed === "") {
+                if (mode === EditMode.ADD) runBlocking {
+                    editorViewModel.resetEditingSpent()
+                }
+            }
+        }
+    }
+
+    Box(modifier) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.CenterEnd,
@@ -121,28 +137,16 @@ fun CurrentSpendEditor(
             if (!hide) {
                 EditableTextWithLabel(
                     value = spentValue,
-                    onChangeValue = {
-                        val fixed = fixedNumberString(it)
-                        val converted = tryConvertStringToNumber(fixed)
-
-                        editorViewModel.rawSpentValue.value = fixed
-                        editorViewModel.modifyEditingSpent(converted.join().toBigDecimal())
-
-                        if (fixed === "") {
-                            if (mode === EditMode.ADD) runBlocking {
-                                editorViewModel.resetEditingSpent()
-                            }
-                        }
-                    },
+                    onChangeValue = onChangeValueCallback,
                     currency = currency,
                     focusRequester = focusRequester,
                 )
 
-                DisposableEffect(requestFocus) {
-                    focusRequester.requestFocus()
-                    requestFocus = false
-
-                    onDispose {}
+                LaunchedEffect(requestFocus) {
+                    if (requestFocus) {
+                        focusRequester.requestFocus()
+                        requestFocus = false
+                    }
                 }
             }
         }

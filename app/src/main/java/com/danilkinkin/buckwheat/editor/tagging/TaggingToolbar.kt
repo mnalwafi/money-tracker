@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,22 @@ fun TaggingToolbar(
         showAddComment = it === EditStage.EDIT_SPENT
     }
 
+    val displayTags = remember(tags, currentComment) {
+        tags.take(5).reversed().filter { it != currentComment }
+    }
+
+    val onSelectTag = remember(editorViewModel) {
+        { selectedTag: String ->
+            editorViewModel.currentComment.value = selectedTag
+        }
+    }
+
+    val onEditCallback = remember {
+        { edit: Boolean ->
+            isEdit = edit
+        }
+    }
+
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val width = maxWidth - 48.dp
 
@@ -68,35 +85,41 @@ fun TaggingToolbar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.End,
         ) {
-            tags.take(5).reversed().filter { it != currentComment }.forEach { tag ->
-                AnimatedVisibility(
-                    visible = showAddComment,
-                    enter = fadeIn(
-                        tween(
-                            durationMillis = 150,
-                            easing = EaseInOutQuad,
+            displayTags.forEach { tag ->
+                key(tag) {
+                    val onClick = remember(tag, onSelectTag) {
+                        { onSelectTag(tag) }
+                    }
+                    AnimatedVisibility(
+                        visible = showAddComment,
+                        enter = fadeIn(
+                            tween(
+                                durationMillis = 150,
+                                easing = EaseInOutQuad,
+                            )
+                        ) + slideInHorizontally(
+                            tween(
+                                durationMillis = 150,
+                                easing = EaseInOutQuad,
+                            )
+                        ) { with(localDensity) { 30.dp.toPx().toInt() } },
+                        exit = fadeOut(
+                            tween(
+                                durationMillis = 150,
+                                easing = EaseInOutQuad,
+                            )
+                        ) + slideOutHorizontally(
+                            tween(
+                                durationMillis = 150,
+                                easing = EaseInOutQuad,
+                            )
+                        ) { with(localDensity) { 30.dp.toPx().toInt() } },
+                    ) {
+                        Tag(
+                            value = tag,
+                            onClick = onClick,
                         )
-                    ) + slideInHorizontally(
-                        tween(
-                            durationMillis = 150,
-                            easing = EaseInOutQuad,
-                        )
-                    ) { with(localDensity) { 30.dp.toPx().toInt() } },
-                    exit = fadeOut(
-                        tween(
-                            durationMillis = 150,
-                            easing = EaseInOutQuad,
-                        )
-                    ) + slideOutHorizontally(
-                        tween(
-                            durationMillis = 150,
-                            easing = EaseInOutQuad,
-                        )
-                    ) { with(localDensity) { 30.dp.toPx().toInt() } },
-                ) {
-                    Tag(value = tag, onClick = {
-                        editorViewModel.currentComment.value = tag
-                    })
+                    }
                 }
             }
             Spacer(modifier = Modifier.width(24.dp))
@@ -129,7 +152,7 @@ fun TaggingToolbar(
                     onlyIcon = tags.isNotEmpty(),
                     editorFocusController = editorFocusController,
                     extendWidth = width,
-                    onEdit = { isEdit = it },
+                    onEdit = onEditCallback,
                 )
             }
         }

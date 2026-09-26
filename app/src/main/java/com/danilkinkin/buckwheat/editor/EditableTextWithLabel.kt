@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -36,20 +37,35 @@ fun EditableTextWithLabel(
     focusRequester: FocusRequester = remember { FocusRequester() },
 ) {
     val context = LocalContext.current
+    val currentOnChangeValue = rememberUpdatedState(onChangeValue)
 
-    val color = contentColorFor(
+    val colorScheme = MaterialTheme.colorScheme
+    val blendedBg = remember(colorScheme.primaryContainer, colorScheme.surfaceVariant) {
         combineColors(
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.surfaceVariant,
+            colorScheme.primaryContainer,
+            colorScheme.surfaceVariant,
             angle = 0.9F,
         )
-    )
+    }
+    val color = contentColorFor(blendedBg)
+
+    val visualTransformation = remember(context, currency, color) {
+        visualTransformationAsCurrency(
+            context,
+            currency = currency ?: ExtendCurrency.none(),
+            hintColor = color.copy(alpha = 0.2f),
+        )
+    }
 
     val keyboardHandler = rememberAppKeyboard(manualDispatcher = { action, _ ->
         if (action == KeyboardAction.REMOVE_LAST && value == "") {
-            onChangeValue("")
+            currentOnChangeValue.value("")
         }
     })
+
+    val cursorBrush = remember(colorScheme.primary) {
+        SolidColor(colorScheme.primary)
+    }
 
     Column(modifier) {
         InterceptPlatformTextInput(keyboardHandler) {
@@ -59,13 +75,9 @@ fun EditableTextWithLabel(
             ) {
                 TextFieldWithPaddings(
                     value = value,
-                    onChangeValue = { onChangeValue(it) },
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    visualTransformation = visualTransformationAsCurrency(
-                        context,
-                        currency = currency ?: ExtendCurrency.none(),
-                        hintColor = color.copy(alpha = 0.2f),
-                    ),
+                    onChangeValue = { currentOnChangeValue.value(it) },
+                    cursorBrush = cursorBrush,
+                    visualTransformation = visualTransformation,
                     currency = currency,
                     focusRequester = focusRequester,
                     contentPadding = contentPaddingValues,

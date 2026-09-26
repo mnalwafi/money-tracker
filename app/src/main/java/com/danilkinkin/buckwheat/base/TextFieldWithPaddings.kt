@@ -6,7 +6,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -42,6 +44,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Paragraph
 import androidx.compose.ui.text.ParagraphIntrinsics
@@ -54,12 +57,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.editor.calcAdaptiveFont
+import com.danilkinkin.buckwheat.editor.isImeAnimationActive
 import com.danilkinkin.buckwheat.ui.colorOnEditor
 import com.danilkinkin.buckwheat.util.numberFormat
 import kotlinx.coroutines.launch
@@ -93,6 +98,17 @@ fun TextFieldWithPaddings(
     val scrollState = rememberScrollState()
     var containerHeight by remember { mutableStateOf(0) }
     var containerWidth by remember { mutableStateOf(0) }
+    var pendingSize by remember { mutableStateOf(IntSize.Zero) }
+
+    val isImeAnimating = isImeAnimationActive()
+
+    LaunchedEffect(isImeAnimating) {
+        if (!isImeAnimating && pendingSize != IntSize.Zero) {
+            containerHeight = pendingSize.height
+            containerWidth = pendingSize.width
+        }
+    }
+
     var inputWidth by remember { mutableStateOf(0) }
     var currencySymbolSize by remember(value) { mutableStateOf(Size(0, 0)) }
     var valueSize by remember(value) { mutableStateOf(Size(0, 0)) }
@@ -225,8 +241,11 @@ fun TextFieldWithPaddings(
                 .fillMaxWidth()
                 .fillMaxHeight()
                 .onGloballyPositioned {
-                    containerHeight = it.size.height
-                    containerWidth = it.size.width
+                    pendingSize = it.size
+                    if (!isImeAnimating) {
+                        containerHeight = it.size.height
+                        containerWidth = it.size.width
+                    }
                 }
         ) {
             BasicTextField(
@@ -319,21 +338,27 @@ fun TextFieldWithPaddings(
 
 @Composable
 fun calculateIntrinsics(input: String, style: TextStyle): Size {
-    val intrinsics = ParagraphIntrinsics(
-        text = input,
-        style = style,
-        density = LocalDensity.current,
-        fontFamilyResolver = createFontFamilyResolver(LocalContext.current)
-    )
+    if (input.isEmpty()) return Size(0, 0)
+    val density = LocalDensity.current
+    val fontFamilyResolver = LocalFontFamilyResolver.current
 
-    val paragraph = Paragraph(
-        paragraphIntrinsics = intrinsics,
-        constraints = Constraints(maxWidth = ceil(1000f).toInt()),
-        maxLines = 1,
-        overflow = TextOverflow.Clip
-    )
+    return remember(input, style.fontSize, density.density) {
+        val intrinsics = ParagraphIntrinsics(
+            text = input,
+            style = style,
+            density = density,
+            fontFamilyResolver = fontFamilyResolver
+        )
 
-    return Size(intrinsics.maxIntrinsicWidth.toInt(), paragraph.firstBaseline.toInt())
+        val paragraph = Paragraph(
+            paragraphIntrinsics = intrinsics,
+            constraints = Constraints(maxWidth = ceil(1000f).toInt()),
+            maxLines = 1,
+            overflow = TextOverflow.Clip
+        )
+
+        Size(intrinsics.maxIntrinsicWidth.toInt(), paragraph.firstBaseline.toInt())
+    }
 }
 
 data class Size(val width: Int, val height: Int)

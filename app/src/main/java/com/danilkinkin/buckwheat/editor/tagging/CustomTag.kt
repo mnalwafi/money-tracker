@@ -26,11 +26,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import kotlinx.coroutines.delay
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilledIconButton
@@ -241,8 +242,10 @@ fun CustomTag(
         }
 
         if (renderPopup) {
-            val filteredItems = tags.filter {
-                it.contains(value.text, ignoreCase = true)
+            val filteredItems = remember(tags, value.text) {
+                tags.filter {
+                    it.contains(value.text, ignoreCase = true)
+                }
             }
 
             val topBarHeight = LocalWindowInsets.current.calculateTopPadding()
@@ -292,19 +295,24 @@ fun CustomTag(
                                     },
                                 shape = RoundedCornerShape(16.dp)
                             ) {
-
                                 LazyColumn(
                                     userScrollEnabled = true,
                                     contentPadding = PaddingValues(vertical = 8.dp),
                                 ) {
-                                    filteredItems.forEach {
-                                        itemSuggest(it) {
-                                            dismissEvent.value = true
-                                            value = TextFieldValue(
-                                                it,
-                                                TextRange(it.length),
-                                            )
-                                        }
+                                    items(
+                                        items = filteredItems,
+                                        key = { it }
+                                    ) { suggestion ->
+                                        SuggestItemRow(
+                                            name = suggestion,
+                                            onClick = {
+                                                dismissEvent.value = true
+                                                value = TextFieldValue(
+                                                    suggestion,
+                                                    TextRange(suggestion.length),
+                                                )
+                                            }
+                                        )
                                     }
                                 }
                             }
@@ -323,34 +331,29 @@ fun CustomTag(
                 isShowSuggestions = true
             }
         }
-
-
     }
 }
 
-private fun LazyListScope.itemSuggest(
+@Composable
+private fun SuggestItemRow(
     name: String,
     onClick: () -> Unit,
 ) {
-    item(name) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .clickable {
-                    onClick()
-                }
-                .fillMaxWidth()
-                .heightIn(42.dp)
-                .padding(start = 24.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-        ) {
-            Text(
-                text = name,
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false,
-                modifier = Modifier.weight(1f)
-            )
-        }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .fillMaxWidth()
+            .heightIn(42.dp)
+            .padding(start = 24.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+    ) {
+        Text(
+            text = name,
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -471,6 +474,10 @@ fun CommentEditor(
 
 
     LaunchedEffect(Unit) {
+        // Coordinate focus request: delay slightly (260ms) until the chip's AnimatedContent
+        // enter-transition (250ms) finishes, preventing the soft keyboard animation from
+        // colliding directly with Compose's internal expand animation.
+        delay(260L)
         focusRequester.requestFocus()
         focusIsTracking = true
     }
