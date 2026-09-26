@@ -169,4 +169,44 @@
   <string name="pending_income_prompt">Received %1$s from %2$s? Tap to add to your budget.</string>
   <string name="pending_income_confirm">Add</string>
   <string name="ai_confidence_badge">%1$d%% confidence</string>
+
+  <string name="recurring_transactions_title">Recurring &amp; Subscriptions</string>
+  <string name="recurring_transactions_desc">Manage fixed obligations, bills, and subscriptions that reserve safe daily spend</string>
+  <string name="add_recurring_transaction">New Recurring</string>
+  <string name="edit_recurring_transaction">Edit Recurring</string>
+  <string name="recurring_name_label">Name / Description</string>
+  <string name="recurring_name_hint">e.g., Netflix, Gym, Rent</string>
+  <string name="recurring_amount_label">Amount</string>
+  <string name="recurring_interval_label">Recurrence Interval</string>
+  <string name="recurring_start_date_label">First / Next Occurrence</string>
+  <string name="recurring_category_label">Category / Tag (Optional)</string>
+  <string name="recurring_auto_deduct">Auto-deduct on due date</string>
+  <string name="recurring_auto_deduct_desc">Automatically log expense when due instead of prompting</string>
+  <string name="recurring_active">Active</string>
+  <string name="recurring_due_soon">Due Soon</string>
+  <string name="recurring_upcoming">Upcoming</string>
+  <string name="recurring_no_items">No recurring transactions yet</string>
+  <string name="recurring_no_items_desc">Add subscriptions, rent, and utility bills to prevent unexpected budget drops</string>
+  <string name="monthly_commitment_total">Monthly Commitment: %1$s</string>
+  <string name="reserved_in_period">Reserved in current period: %1$s</string>
+  <string name="reserved_recurring_label">Reserved: %1$s</string>
+  <string name="reserved_recurring_description">Buckwheat reserved %1$s from your remaining pool for upcoming fixed obligations before your period ends, preventing mid-cycle allowance drops.</string>
+  <string name="recurring_bill_due_title">Bill Due Today</string>
+  <string name="recurring_bill_due_body">%1$s (%2$s) is due today. Tap to log now.</string>
+  <string name="recurring_mark_paid">Log Now</string>
+  <string name="recurring_skip">Skip</string>
+  <string name="recurring_delete">Delete</string>
+  <string name="interval_daily">Daily</string>
+  <string name="interval_weekly">Weekly</string>
+  <string name="interval_monthly">Monthly</string>
+  <string name="interval_yearly">Yearly</string>
+  <string name="due_today">Due today</string>
+  <plurals name="due_in_days">
+    <item quantity="one">Due in %1$d day</item>
+    <item quantity="other">Due in %1$d days</item>
+  </plurals>
+  <plurals name="overdue_by_days">
+    <item quantity="one">Overdue by %1$d day</item>
+    <item quantity="other">Overdue by %1$d days</item>
+  </plurals>
 </resources>

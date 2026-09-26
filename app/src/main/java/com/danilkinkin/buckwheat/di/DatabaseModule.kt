@@ -4,11 +4,12 @@ import androidx.room.*
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.danilkinkin.buckwheat.data.dao.RecurringTransactionDao
 import com.danilkinkin.buckwheat.data.dao.StorageDao
 import com.danilkinkin.buckwheat.data.dao.TransactionDao
+import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
 import com.danilkinkin.buckwheat.data.entities.Storage
 import com.danilkinkin.buckwheat.data.entities.Transaction
-
 
 class AutoMigration1to2 : AutoMigrationSpec
 
@@ -47,9 +48,27 @@ val AutoMigration4to5: Migration = object : Migration(4, 5) {
     }
 }
 
+// Add recurring_transactions table
+val Migration5to6: Migration = object : Migration(5, 6) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL(
+            "CREATE TABLE IF NOT EXISTS `recurring_transactions` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`amount` TEXT NOT NULL, " +
+                    "`categoryTag` TEXT, " +
+                    "`interval` TEXT NOT NULL, " +
+                    "`startDate` INTEGER NOT NULL, " +
+                    "`nextOccurrence` INTEGER NOT NULL, " +
+                    "`isActive` INTEGER NOT NULL DEFAULT 1, " +
+                    "`autoDeduct` INTEGER NOT NULL DEFAULT 0)"
+        )
+    }
+}
+
 @Database(
-    entities = [Transaction::class, Storage::class],
-    version = 5,
+    entities = [Transaction::class, Storage::class, RecurringTransaction::class],
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 1, to = 2, spec = AutoMigration1to2::class),
         AutoMigration(from = 2, to = 3, spec = AutoMigration2to3::class),
@@ -64,7 +83,9 @@ abstract class DatabaseModule : RoomDatabase() {
 
     abstract fun storageDao(): StorageDao
 
+    abstract fun recurringTransactionDao(): RecurringTransactionDao
+
     companion object {
-        val MANUAL_MIGRATIONS = arrayOf<Migration>(AutoMigration4to5)
+        val MANUAL_MIGRATIONS = arrayOf<Migration>(AutoMigration4to5, Migration5to6)
     }
 }

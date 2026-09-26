@@ -55,6 +55,7 @@ fun Settings(onTriedWidget: () -> Unit = {}) {
                 ThemeSwitcher()
                 LangSwitcher()
                 NotificationCaptureSwitcher()
+                RecurringTransactionsRow()
                 TryWidget(onTried = {
                     onTriedWidget()
                 })

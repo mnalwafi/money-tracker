@@ -36,6 +36,10 @@ class RestBudgetPillViewModel @Inject constructor(
         private set
     var newDailyBudget = MutableLiveData("")
         private set
+    var reservedAmount = MutableLiveData<BigDecimal>(BigDecimal.ZERO)
+        private set
+    var formattedReservedAmount = MutableLiveData("")
+        private set
 
     fun calculateValues(context: Context, currentSpent: BigDecimal) {
         val ths = this
@@ -95,6 +99,17 @@ class RestBudgetPillViewModel @Inject constructor(
                 currency = currency,
                 trimDecimalPlaces = true,
             )
+
+            val reserved = spendsRepository.getReservedRecurringAmount()
+            ths.reservedAmount.value = reserved
+            ths.formattedReservedAmount.value = if (reserved > BigDecimal.ZERO) {
+                numberFormat(
+                    context,
+                    reserved,
+                    currency = currency,
+                    trimDecimalPlaces = true,
+                )
+            } else ""
 
             ths.state.value = when {
                 isBudgetEnd -> DaileBudgetState.BUDGET_END

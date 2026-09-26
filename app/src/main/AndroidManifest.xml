@@ -38,6 +38,27 @@
         </receiver>
 
         <receiver
+            android:name=".service.RecurringActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.danilkinkin.buckwheat.ACTION_CONFIRM_RECURRING" />
+                <action android:name="com.danilkinkin.buckwheat.ACTION_SKIP_RECURRING" />
+                <action android:name="com.danilkinkin.buckwheat.ACTION_DISMISS_RECURRING" />
+            </intent-filter>
+        </receiver>
+
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
+        <receiver
             android:name=".widget.extend.ExtendWidgetReceiver"
             android:label="@string/app_widget_extend_name"
             android:exported="true">

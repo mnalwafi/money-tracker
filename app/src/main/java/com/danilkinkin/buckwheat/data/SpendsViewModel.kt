@@ -41,6 +41,7 @@ class SpendsViewModel @Inject constructor(
     var restedBudgetDistributionMethod =
         spendsRepository.getRestedBudgetDistributionMethod().asLiveData()
     var hideOverspendingWarn = spendsRepository.getHideOverspendingWarn().asLiveData()
+    var reservedRecurringAmount = spendsRepository.getReservedRecurringFlow().asLiveData()
 
     var requireDistributionRestedBudget = MutableLiveData(false)
     var requireSetBudget = MutableLiveData(false)

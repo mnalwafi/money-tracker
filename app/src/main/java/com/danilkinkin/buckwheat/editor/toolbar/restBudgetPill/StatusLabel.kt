@@ -72,6 +72,16 @@ fun StatusLabel(
                 overflow = TextOverflow.Ellipsis,
                 softWrap = false,
             )
+            val formattedReservedAmount by restBudgetPillViewModel.formattedReservedAmount.observeAsState("")
+            if (formattedReservedAmount.isNotEmpty()) {
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    painter = painterResource(R.drawable.ic_autorenew),
+                    contentDescription = stringResource(R.string.reserved_recurring_label, formattedReservedAmount),
+                    modifier = Modifier.size(14.dp),
+                    tint = textColor.copy(alpha = 0.6f),
+                )
+            }
             Spacer(modifier = Modifier.width(14.dp))
         }
         AnimatedVisibility(

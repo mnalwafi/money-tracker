@@ -17,15 +17,19 @@ import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.data.dao.TransactionDao
 import com.danilkinkin.buckwheat.data.entities.TransactionType
 import com.danilkinkin.buckwheat.errorForReport
+import com.danilkinkin.buckwheat.data.dao.RecurringTransactionDao
 import com.danilkinkin.buckwheat.util.countDays
 import com.danilkinkin.buckwheat.util.isSameDay
 import com.danilkinkin.buckwheat.util.roundToDay
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.lang.Long.min
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Date
 import javax.inject.Inject
 
@@ -46,6 +50,7 @@ class SpendsRepository @Inject constructor(
     @ApplicationContext val context: Context,
     private val transactionDao: TransactionDao,
     private val getCurrentDateUseCase: GetCurrentDateUseCase,
+    private val recurringTransactionDao: RecurringTransactionDao,
 ) {
     fun getAllTransactions(): LiveData<List<Transaction>> = transactionDao.getAll()
     fun getAllSpends(): LiveData<List<Transaction>> = transactionDao.getAll(TransactionType.SPENT)
@@ -252,6 +257,59 @@ class SpendsRepository @Inject constructor(
         )
     }
 
+    suspend fun getReservedRecurringAmount(finishPeriodDate: Date? = null): BigDecimal {
+        val targetFinishDate = finishPeriodDate ?: getFinishPeriodDate().first() ?: return BigDecimal.ZERO
+        val finishLocalDate = Instant.ofEpochMilli(targetFinishDate.time)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+        val today = Instant.ofEpochMilli(getCurrentDateUseCase().time)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+        if (finishLocalDate.isBefore(today)) return BigDecimal.ZERO
+
+        val activeList = recurringTransactionDao.getActiveList()
+        var totalReserved = BigDecimal.ZERO
+
+        for (item in activeList) {
+            val occurrences = item.interval.countOccurrencesBetween(
+                startDate = today,
+                endDate = finishLocalDate,
+                firstOccurrence = item.nextOccurrence,
+            )
+            if (occurrences > 0) {
+                totalReserved = totalReserved.add(item.amount.multiply(BigDecimal(occurrences)))
+            }
+        }
+
+        return totalReserved.setScale(2, RoundingMode.HALF_UP)
+    }
+
+    fun getReservedRecurringFlow(): kotlinx.coroutines.flow.Flow<BigDecimal> {
+        return combine(recurringTransactionDao.getActive(), getFinishPeriodDate()) { activeList, finishDate ->
+            if (finishDate == null) return@combine BigDecimal.ZERO
+            val finishLocalDate = Instant.ofEpochMilli(finishDate.time)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+            val today = Instant.ofEpochMilli(getCurrentDateUseCase().time)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+            if (finishLocalDate.isBefore(today)) return@combine BigDecimal.ZERO
+
+            var total = BigDecimal.ZERO
+            for (item in activeList) {
+                val occurrences = item.interval.countOccurrencesBetween(
+                    startDate = today,
+                    endDate = finishLocalDate,
+                    firstOccurrence = item.nextOccurrence,
+                )
+                if (occurrences > 0) {
+                    total = total.add(item.amount.multiply(BigDecimal(occurrences)))
+                }
+            }
+            total.setScale(2, RoundingMode.HALF_UP)
+        }
+    }
+
     suspend fun whatBudgetForDay(
         excludeCurrentDay: Boolean = false,
         applyTodaySpends: Boolean = false,
@@ -277,6 +335,9 @@ class SpendsRepository @Inject constructor(
             restBudget -= dailyBudget
         }
 
+        val reservedRecurring = getReservedRecurringAmount(finishPeriodDate)
+        restBudget = (restBudget - reservedRecurring).coerceAtLeast(BigDecimal.ZERO)
+
         val whatBudgetForDay = restBudget
             .divide(
                 restDays.toBigDecimal().coerceAtLeast(BigDecimal(1)),
@@ -289,6 +350,7 @@ class SpendsRepository @Inject constructor(
             "Check what budget for day ["
                     + "date: ${getCurrentDateUseCase()} "
                     + "what budget for day: $whatBudgetForDay "
+                    + "reserved recurring: $reservedRecurring "
                     + "excludeCurrentDay: $excludeCurrentDay "
                     + "applyTodaySpends: $applyTodaySpends "
                     + "notCommittedSpent: $notCommittedSpent "
@@ -308,8 +370,9 @@ class SpendsRepository @Inject constructor(
         val budget = getBudget().first()
         val spent = getSpent().first()
         val spentFromDailyBudget = getSpentFromDailyBudget().first()
+        val reservedRecurring = getReservedRecurringAmount()
 
-        return budget - spent - spentFromDailyBudget
+        return (budget - spent - spentFromDailyBudget - reservedRecurring).coerceAtLeast(BigDecimal.ZERO)
     }
 
     suspend fun howMuchNotSpent(
@@ -331,7 +394,8 @@ class SpendsRepository @Inject constructor(
             lastChangeDailyBudgetDate
         ) - 1
 
-        var restBudget = budget - spent
+        val reservedRecurring = getReservedRecurringAmount(finishPeriodDate)
+        var restBudget = (budget - spent - reservedRecurring).coerceAtLeast(BigDecimal.ZERO)
 
         val howMuchNotSpent = if (restDays == 0) {
             restBudget - spentFromDailyBudget
@@ -393,7 +457,8 @@ class SpendsRepository @Inject constructor(
             lastChangeDailyBudgetDate
         ) - 1
 
-        var restBudget = budget - spent
+        val reservedRecurring = getReservedRecurringAmount(finishPeriodDate)
+        var restBudget = (budget - spent - reservedRecurring).coerceAtLeast(BigDecimal.ZERO)
 
         val nextDailyBudget = if (restDays == 0) {
             restBudget - spentFromDailyBudget

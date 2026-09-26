@@ -28,6 +28,8 @@ import com.danilkinkin.buckwheat.onboarding.ON_BOARDING_SHEET
 import com.danilkinkin.buckwheat.onboarding.Onboarding
 import com.danilkinkin.buckwheat.recalcBudget.RECALCULATE_DAILY_BUDGET_SHEET
 import com.danilkinkin.buckwheat.recalcBudget.RecalcBudget
+import com.danilkinkin.buckwheat.recurring.RECURRING_TRANSACTIONS_SHEET
+import com.danilkinkin.buckwheat.recurring.RecurringTransactionsSheet
 import com.danilkinkin.buckwheat.settings.*
 import com.danilkinkin.buckwheat.wallet.*
 import kotlinx.coroutines.launch
@@ -109,6 +111,16 @@ fun BottomSheets(
         Settings(
             onTriedWidget = {
                 coroutineScope.launch { state.callback(emptyMap()) }
+            }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = RECURRING_TRANSACTIONS_SHEET,
+    ) { state ->
+        RecurringTransactionsSheet(
+            onClose = {
+                coroutineScope.launch { state.hide() }
             }
         )
     }
