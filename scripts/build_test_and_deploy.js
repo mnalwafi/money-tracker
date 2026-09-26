@@ -72,24 +72,42 @@ try {
     console.error('Verification suite failed:', verificationOutput);
 }
 
+const JDK_DIR = 'C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot';
+const JDK_BIN = path.join(JDK_DIR, 'bin');
+
 const hasJava = () => {
-    try {
-        execSync('java -version', { stdio: 'ignore' });
-        return true;
-    } catch (e) {
-        return false;
-    }
+    return fs.existsSync(path.join(JDK_BIN, 'javac.exe')) || fs.existsSync(path.join(JDK_BIN, 'java.exe'));
+};
+
+const runGradle = (task) => {
+    const gradleEnv = {
+        ...process.env,
+        JAVA_HOME: JDK_DIR,
+        PATH: JDK_BIN + ';' + (process.env.PATH || ''),
+        GRADLE_OPTS: '-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=8080 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=8080 -Djava.net.preferIPv4Stack=true'
+    };
+    return execSync(`cmd.exe /c gradlew.bat ${task}`, { cwd: ROOT_DIR, env: gradleEnv, encoding: 'utf8' });
 };
 
 if (hasJava()) {
     console.log('Running local unit tests via Gradle...');
     try {
-        const testOutput = execSync('cmd.exe /c gradlew.bat testDebugUnitTest --continue', { cwd: ROOT_DIR, encoding: 'utf8' });
+        runGradle('testDebugUnitTest --continue');
         testStatus = 'Passed (All local unit tests + verification passed)';
         console.log('✓ All local unit tests passed!');
     } catch (e) {
         testStatus = 'Failed';
         console.log('✗ Local unit tests reported issues');
+    }
+
+    console.log('Compiling debug APK via Gradle...');
+    try {
+        runGradle('assembleDebug');
+        buildStatus = 'Compiled successfully (Debug APK available)';
+        console.log('✓ Successfully compiled debug APK!');
+    } catch (e) {
+        buildStatus = 'Failed to compile APK';
+        console.error('✗ Failed to compile APK:', e.message);
     }
 }
 

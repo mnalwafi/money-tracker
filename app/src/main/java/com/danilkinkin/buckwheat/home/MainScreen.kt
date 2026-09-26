@@ -320,6 +320,7 @@ fun MainScreen(
                     }
                 }
             }
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)

@@ -143,7 +143,6 @@
   <string name="confirm_finish_budget_title">Finish budget</string>
   <string name="confirm_finish_budget_description">Your current budget will be completed, and you will no longer be able to make any further expenses</string>
   <string name="confirm_finish_budget">Finish budget</string>
-  <string name="cancel">Cancel</string>
 
   <string name="notification_capture_title">Notification Expense Capture</string>
   <string name="notification_capture_desc">Automatically detect and prompt to log expenses from banking and payment notifications</string>
