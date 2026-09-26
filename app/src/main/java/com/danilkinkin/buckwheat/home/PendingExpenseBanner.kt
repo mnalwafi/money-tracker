@@ -66,14 +66,17 @@ fun PendingExpenseBanner(
         exit = fadeOut() + shrinkVertically(),
     ) {
         if (latestExpense != null) {
+            val isIncome = latestExpense.type == com.danilkinkin.buckwheat.data.entities.TransactionCaptureType.INCOME
+            val confidencePct = (latestExpense.confidence * 100).toInt().coerceIn(1, 100)
+
             Card(
                 modifier = modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    containerColor = if (isIncome) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = if (isIncome) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
                 ),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
@@ -90,17 +93,23 @@ fun PendingExpenseBanner(
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_money),
+                                painter = painterResource(if (isIncome) R.drawable.ic_balance_wallet else R.drawable.ic_money),
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = if (isIncome) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = stringResource(R.string.pending_expense_banner_title),
+                                text = stringResource(if (isIncome) R.string.pending_income_banner_title else R.string.pending_expense_banner_title),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = if (isIncome) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.ai_confidence_badge, confidencePct),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline,
                             )
                         }
                         IconButton(
@@ -119,11 +128,19 @@ fun PendingExpenseBanner(
 
                     val formattedAmount = "${latestExpense.currencySymbol ?: ""} ${latestExpense.amount}".trim()
                     Text(
-                        text = stringResource(
-                            R.string.pending_expense_prompt,
-                            formattedAmount,
-                            latestExpense.merchant,
-                        ),
+                        text = if (isIncome) {
+                            stringResource(
+                                R.string.pending_income_prompt,
+                                formattedAmount,
+                                latestExpense.merchant,
+                            )
+                        } else {
+                            stringResource(
+                                R.string.pending_expense_prompt,
+                                formattedAmount,
+                                latestExpense.merchant,
+                            )
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(vertical = 8.dp),
                     )
@@ -138,7 +155,7 @@ fun PendingExpenseBanner(
                                     amount = latestExpense.amount,
                                     merchant = latestExpense.merchant,
                                     date = latestExpense.date,
-                                )
+                                    )
                                 viewModel.pendingExpenseRepository.removePendingExpense(latestExpense.id)
                                 onEditExpense()
                             },
@@ -150,20 +167,24 @@ fun PendingExpenseBanner(
                         Button(
                             onClick = {
                                 val transaction = Transaction(
-                                    type = TransactionType.SPENT,
+                                    type = if (isIncome) TransactionType.INCOME else TransactionType.SPENT,
                                     value = latestExpense.amount,
                                     date = latestExpense.date,
                                     comment = latestExpense.merchant,
                                 )
-                                spendsViewModel.addSpent(transaction)
+                                if (isIncome) {
+                                    spendsViewModel.addIncome(transaction)
+                                } else {
+                                    spendsViewModel.addSpent(transaction)
+                                }
                                 viewModel.pendingExpenseRepository.removePendingExpense(latestExpense.id)
                             },
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = if (isIncome) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                                contentColor = if (isIncome) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onPrimary,
                             ),
                         ) {
-                            Text(text = stringResource(R.string.pending_expense_confirm))
+                            Text(text = stringResource(if (isIncome) R.string.pending_income_confirm else R.string.pending_expense_confirm))
                         }
                     }
                 }

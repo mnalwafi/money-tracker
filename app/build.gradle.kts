@@ -57,6 +57,10 @@ android {
         }
     }
 
+    androidResources {
+        noCompress += "tflite"
+    }
+
     packaging {
         // Multiple dependency bring these files in. Exclude them to enable
         // our test APK to build (has no effect on our AARs)
@@ -67,6 +71,7 @@ android {
 }
 
 dependencies {
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.2.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("androidx.appcompat:appcompat:1.7.1")

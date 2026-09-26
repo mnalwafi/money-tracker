@@ -22,6 +22,7 @@ class ExpenseNotificationHelper @Inject constructor(
     companion object {
         const val CHANNEL_ID = "channel_expense_capture"
         const val EXTRA_PENDING_EXPENSE_ID = "extra_pending_expense_id"
+        const val EXTRA_TYPE = "extra_type"
         const val EXTRA_AMOUNT = "extra_amount"
         const val EXTRA_MERCHANT = "extra_merchant"
         const val EXTRA_TIMESTAMP = "extra_timestamp"
@@ -49,11 +50,13 @@ class ExpenseNotificationHelper @Inject constructor(
 
     fun showExpenseNotification(expense: ParsedExpense) {
         val notificationId = expense.id.hashCode()
+        val isIncome = expense.type == com.danilkinkin.buckwheat.data.entities.TransactionCaptureType.INCOME
 
         // 1. Content Intent (Tapping notification opens MainActivity to review/edit)
         val contentIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_PENDING_EXPENSE_ID, expense.id)
+            putExtra(EXTRA_TYPE, expense.type.name)
             putExtra(EXTRA_AMOUNT, expense.amount.toString())
             putExtra(EXTRA_MERCHANT, expense.merchant)
             putExtra(EXTRA_TIMESTAMP, expense.date.time)
@@ -69,6 +72,7 @@ class ExpenseNotificationHelper @Inject constructor(
         val logIntent = Intent(context, ExpenseActionReceiver::class.java).apply {
             action = ExpenseActionReceiver.ACTION_CONFIRM
             putExtra(EXTRA_PENDING_EXPENSE_ID, expense.id)
+            putExtra(EXTRA_TYPE, expense.type.name)
             putExtra(EXTRA_AMOUNT, expense.amount.toString())
             putExtra(EXTRA_MERCHANT, expense.merchant)
             putExtra(EXTRA_TIMESTAMP, expense.date.time)
@@ -95,8 +99,21 @@ class ExpenseNotificationHelper @Inject constructor(
         )
 
         val formattedAmount = "${expense.currencySymbol ?: ""} ${expense.amount}".trim()
-        val title = context.getString(R.string.expense_detected_notification_title, formattedAmount, expense.merchant)
-        val body = context.getString(R.string.expense_detected_notification_body)
+        val title = if (isIncome) {
+            context.getString(R.string.income_detected_notification_title, formattedAmount, expense.merchant)
+        } else {
+            context.getString(R.string.expense_detected_notification_title, formattedAmount, expense.merchant)
+        }
+        val body = if (isIncome) {
+            context.getString(R.string.income_detected_notification_body)
+        } else {
+            context.getString(R.string.expense_detected_notification_body)
+        }
+        val actionLabel = if (isIncome) {
+            context.getString(R.string.add_income_action)
+        } else {
+            context.getString(R.string.log_expense_action)
+        }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_money)
@@ -107,7 +124,7 @@ class ExpenseNotificationHelper @Inject constructor(
             .setContentIntent(contentPendingIntent)
             .addAction(
                 R.drawable.ic_edit,
-                context.getString(R.string.log_expense_action),
+                actionLabel,
                 logPendingIntent
             )
             .addAction(

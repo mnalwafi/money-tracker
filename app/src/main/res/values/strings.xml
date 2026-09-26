@@ -162,4 +162,12 @@
   <string name="pending_expense_prompt">Spent %1$s at %2$s? Tap to confirm or categorize.</string>
   <string name="pending_expense_confirm">Log</string>
   <string name="pending_expense_edit">Edit</string>
+
+  <string name="income_detected_notification_title">Received %1$s from %2$s?</string>
+  <string name="income_detected_notification_body">Tap to add this income to your budget</string>
+  <string name="add_income_action">Add to Budget</string>
+  <string name="pending_income_banner_title">Income Detected</string>
+  <string name="pending_income_prompt">Received %1$s from %2$s? Tap to add to your budget.</string>
+  <string name="pending_income_confirm">Add</string>
+  <string name="ai_confidence_badge">%1$d%% confidence</string>
 </resources>

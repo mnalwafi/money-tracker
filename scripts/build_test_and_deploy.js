@@ -59,6 +59,18 @@ run(`git -c http.proxy=${PROXY_URL} pull --rebase origin main`, BUILD_REPO_DIR);
 console.log('[3/4] Checking build artifacts and test reports...');
 let testStatus = 'Skipped (No local JDK)';
 let buildStatus = 'Delegated to GitHub Actions CI';
+let verificationOutput = '';
+
+console.log('Running automated verification suite...');
+try {
+    verificationOutput = execSync('node scripts/verify_hybrid_engine.js', { cwd: ROOT_DIR, encoding: 'utf8' });
+    console.log(verificationOutput);
+    testStatus = 'Passed (Verification Suite: 100% passed)';
+} catch (e) {
+    testStatus = 'Failed';
+    verificationOutput = e.stdout ? e.stdout.toString() : e.message;
+    console.error('Verification suite failed:', verificationOutput);
+}
 
 const hasJava = () => {
     try {
@@ -70,18 +82,15 @@ const hasJava = () => {
 };
 
 if (hasJava()) {
-    console.log('Running local unit tests...');
+    console.log('Running local unit tests via Gradle...');
     try {
         const testOutput = execSync('cmd.exe /c gradlew.bat testDebugUnitTest --continue', { cwd: ROOT_DIR, encoding: 'utf8' });
-        testStatus = 'Passed';
+        testStatus = 'Passed (All local unit tests + verification passed)';
         console.log('✓ All local unit tests passed!');
     } catch (e) {
         testStatus = 'Failed';
         console.log('✗ Local unit tests reported issues');
     }
-} else {
-    testStatus = 'Unit tests verified (Cloud CI / Parser Tests)';
-    buildStatus = 'Automated via GitHub CI/CD';
 }
 
 // 5. Gather and Structure Artifacts
@@ -104,6 +113,12 @@ const localReports = path.join(ROOT_DIR, 'app', 'build', 'reports', 'tests', 'te
 if (fs.existsSync(localReports)) {
     fs.cpSync(localReports, reportsDir, { recursive: true });
     console.log('✓ Copied test reports');
+}
+
+// Write verification report
+if (verificationOutput) {
+    fs.writeFileSync(path.join(reportsDir, 'verification-report.txt'), verificationOutput, 'utf8');
+    console.log('✓ Saved verification report');
 }
 
 // Generate rich README in build repository

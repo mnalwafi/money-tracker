@@ -521,4 +521,12 @@ class SpendsRepository @Inject constructor(
             }
         }
     }
+
+    suspend fun addIncome(transaction: Transaction) {
+        this.transactionDao.insert(transaction)
+        val currentBudget = getBudget().first()
+        val newBudget = currentBudget + transaction.value
+        val finishDate = getFinishPeriodDate().first() ?: getCurrentDateUseCase()
+        changeBudget(newBudget, finishDate)
+    }
 }

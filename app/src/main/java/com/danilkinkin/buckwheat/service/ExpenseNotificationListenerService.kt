@@ -29,6 +29,9 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
     lateinit var pendingExpenseRepository: PendingExpenseRepository
 
     @Inject
+    lateinit var captureEngine: HybridTransactionCaptureEngine
+
+    @Inject
     lateinit var parser: NotificationExpenseParser
 
     @Inject
@@ -61,7 +64,12 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
                 // Prefer bigText if available as it often contains detailed transaction info
                 val contentBody = if (!bigText.isNullOrBlank()) bigText else text
 
-                val parsedExpense = parser.parse(
+                val parsedExpense = captureEngine.processNotification(
+                    packageName = sbn.packageName,
+                    title = title,
+                    text = contentBody,
+                    postTime = sbn.postTime
+                ) ?: parser.parse(
                     packageName = sbn.packageName,
                     title = title,
                     text = contentBody,
@@ -69,7 +77,7 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
                 )
 
                 if (parsedExpense != null) {
-                    Log.d(TAG, "Expense detected: ${parsedExpense.amount} at ${parsedExpense.merchant}")
+                    Log.d(TAG, "Transaction detected: ${parsedExpense.type} ${parsedExpense.amount} at ${parsedExpense.merchant}")
                     pendingExpenseRepository.addPendingExpense(parsedExpense)
                     notificationHelper.showExpenseNotification(parsedExpense)
                 }

@@ -44,6 +44,8 @@ class ExpenseActionReceiver : BroadcastReceiver() {
                 val rawAmount = intent.getStringExtra(ExpenseNotificationHelper.EXTRA_AMOUNT) ?: return
                 val merchant = intent.getStringExtra(ExpenseNotificationHelper.EXTRA_MERCHANT) ?: ""
                 val timestamp = intent.getLongExtra(ExpenseNotificationHelper.EXTRA_TIMESTAMP, System.currentTimeMillis())
+                val typeName = intent.getStringExtra(ExpenseNotificationHelper.EXTRA_TYPE)
+                val isIncome = typeName == com.danilkinkin.buckwheat.data.entities.TransactionCaptureType.INCOME.name
 
                 val amount = try {
                     BigDecimal(rawAmount)
@@ -52,7 +54,7 @@ class ExpenseActionReceiver : BroadcastReceiver() {
                 }
 
                 val transaction = Transaction(
-                    type = TransactionType.SPENT,
+                    type = if (isIncome) TransactionType.INCOME else TransactionType.SPENT,
                     value = amount,
                     date = Date(timestamp),
                     comment = merchant,
@@ -61,7 +63,11 @@ class ExpenseActionReceiver : BroadcastReceiver() {
                 val pendingResult = goAsync()
                 scope.launch {
                     try {
-                        spendsRepository.addSpent(transaction)
+                        if (isIncome) {
+                            spendsRepository.addIncome(transaction)
+                        } else {
+                            spendsRepository.addSpent(transaction)
+                        }
                         pendingExpenseRepository.removePendingExpense(pendingExpenseId)
                         notificationHelper.dismissNotification(notificationId)
                     } finally {

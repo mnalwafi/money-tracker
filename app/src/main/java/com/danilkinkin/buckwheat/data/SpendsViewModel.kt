@@ -95,6 +95,12 @@ class SpendsViewModel @Inject constructor(
         }
     }
 
+    fun addIncome(transactionForAdd: Transaction) {
+        viewModelScope.launch {
+            spendsRepository.addIncome(transactionForAdd)
+        }
+    }
+
     fun removeSpent(transactionForRemove: Transaction, silent: Boolean = false) {
         viewModelScope.launch {
             spendsRepository.removeSpent(transactionForRemove)
