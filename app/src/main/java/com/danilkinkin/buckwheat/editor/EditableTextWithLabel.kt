@@ -35,6 +35,7 @@ fun EditableTextWithLabel(
     onChangeValue: (value: String) -> Unit = {},
     contentPaddingValues: PaddingValues = PaddingValues(start = 36.dp, end = 36.dp),
     focusRequester: FocusRequester = remember { FocusRequester() },
+    freezeMeasurement: Boolean = false,
 ) {
     val context = LocalContext.current
     val currentOnChangeValue = rememberUpdatedState(onChangeValue)
@@ -81,6 +82,7 @@ fun EditableTextWithLabel(
                     currency = currency,
                     focusRequester = focusRequester,
                     contentPadding = contentPaddingValues,
+                    freezeMeasurement = freezeMeasurement,
                 )
             }
         }

@@ -140,6 +140,7 @@ fun CurrentSpendEditor(
                     onChangeValue = onChangeValueCallback,
                     currency = currency,
                     focusRequester = focusRequester,
+                    freezeMeasurement = appViewModel.showSystemKeyboard.value || isImeAnimationActive(),
                 )
 
                 LaunchedEffect(requestFocus) {

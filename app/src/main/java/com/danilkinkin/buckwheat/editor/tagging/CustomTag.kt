@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +38,8 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -53,7 +54,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -166,6 +168,7 @@ fun CustomTag(
                         focusManager.clearFocus()
                         isEdit = true
                         onEdit(true)
+                        appViewModel.showSystemKeyboard.value = true
                         appViewModel.lockDraggable.value = true
                     }
                 })
@@ -208,9 +211,6 @@ fun CustomTag(
                             value = value,
                             onChange = { value = it },
                             onApply = { close() },
-                            onFocusReady = {
-                                appViewModel.showSystemKeyboard.value = true
-                            }
                         )
                     } else if (!onlyIcon || value.text.isNotEmpty()) {
                         Text(
@@ -372,12 +372,11 @@ fun CommentEditor(
     value: TextFieldValue,
     onChange: (comment: TextFieldValue) -> Unit,
     onApply: () -> Unit,
-    onFocusReady: () -> Unit = {},
 ) {
     var focusIsTracking by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
-    BasicTextField(
+    TextField(
         modifier = modifier
             .fillMaxWidth()
             .focusRequester(focusRequester)
@@ -388,11 +387,42 @@ fun CommentEditor(
             },
         value = value,
         onValueChange = onChange,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(
-            color = MaterialTheme.colorScheme.onSurface
-        ),
-        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        trailingIcon = {
+            FilledIconButton(
+                modifier = Modifier.padding(end = 4.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+                onClick = onApply,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_apply),
+                    contentDescription = null,
+                )
+            }
+        },
+        placeholder = {
+            Text(
+                text = stringResource(R.string.add_comment),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        textStyle = MaterialTheme.typography.bodyLarge,
         singleLine = true,
+        shape = RectangleShape,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            disabledContainerColor = MaterialTheme.colorScheme.surface,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            errorIndicatorColor = Color.Transparent,
+        ),
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
             imeAction = ImeAction.Done,
@@ -400,55 +430,9 @@ fun CommentEditor(
         keyboardActions = KeyboardActions(
             onDone = { onApply() }
         ),
-        decorationBox = { innerTextField ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 2.dp, end = 8.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    if (value.text.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.add_comment),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    innerTextField()
-                }
-                FilledIconButton(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(end = 4.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    ),
-                    onClick = onApply,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_apply),
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-        }
     )
 
     LaunchedEffect(Unit) {
-        // Wait for chip expand transition (250ms) to complete cleanly
-        delay(260L)
-        onFocusReady()
         focusRequester.requestFocus()
         focusIsTracking = true
     }

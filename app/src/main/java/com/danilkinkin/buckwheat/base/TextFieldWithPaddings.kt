@@ -81,6 +81,7 @@ fun TextFieldWithPaddings(
     currency: ExtendCurrency? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     focusRequester: FocusRequester = remember { FocusRequester() },
+    freezeMeasurement: Boolean = false,
 ) {
     val context = LocalContext.current
     var textFieldValueState by remember { mutableStateOf(TextFieldValue(text = value)) }
@@ -102,8 +103,8 @@ fun TextFieldWithPaddings(
 
     val isImeAnimating = isImeAnimationActive()
 
-    LaunchedEffect(isImeAnimating) {
-        if (!isImeAnimating && pendingSize != IntSize.Zero) {
+    LaunchedEffect(isImeAnimating, freezeMeasurement) {
+        if (!isImeAnimating && !freezeMeasurement && pendingSize != IntSize.Zero) {
             containerHeight = pendingSize.height
             containerWidth = pendingSize.width
         }
@@ -139,14 +140,21 @@ fun TextFieldWithPaddings(
         ).filter { symbol -> symbol != '0' }
     }
 
-    val fontSize = calcAdaptiveFont(
-        height = containerHeight.toFloat(),
-        width = (containerWidth - gapStart - gapEnd).toFloat(),
-        maxFontSize = 80.sp,
-        minFontSize = 40.sp,
-        text = (currSymbol ?: "") + textFieldValue.text,
-        style = MaterialTheme.typography.displayLarge
-    )
+    val cachedFontSize = remember { mutableStateOf(80.sp) }
+    val fontSize = if (freezeMeasurement && containerHeight > 0) {
+        cachedFontSize.value
+    } else {
+        val computed = calcAdaptiveFont(
+            height = containerHeight.toFloat(),
+            width = (containerWidth - gapStart - gapEnd).toFloat(),
+            maxFontSize = 80.sp,
+            minFontSize = 40.sp,
+            text = (currSymbol ?: "") + textFieldValue.text,
+            style = MaterialTheme.typography.displayLarge
+        )
+        cachedFontSize.value = computed
+        computed
+    }
 
     val textStyle = MaterialTheme.typography.displayLarge.copy(
         fontSize = fontSize,
@@ -242,7 +250,7 @@ fun TextFieldWithPaddings(
                 .fillMaxHeight()
                 .onGloballyPositioned {
                     pendingSize = it.size
-                    if (!isImeAnimating) {
+                    if (!isImeAnimating && !freezeMeasurement) {
                         containerHeight = it.size.height
                         containerWidth = it.size.width
                     }
