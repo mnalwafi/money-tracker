@@ -18,6 +18,13 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
             Pattern.compile("""\b(jangan\s+bagikan\s+kode\s+ini)\b""", Pattern.CASE_INSENSITIVE)
         )
 
+        // Failed / Declined / Cancelled transaction patterns (High priority noise)
+        private val FAILED_TRANSACTION_PATTERNS = listOf(
+            Pattern.compile("""\b(failed|declined|unsuccessful|cancelled|canceled|rejected|expired)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(gagal|tidak\s+berhasil|dibatalkan|ditolak|kadaluwarsa|batal)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(payment\s+failed|transaction\s+failed|transaksi\s+gagal|pembayaran\s+gagal)\b""", Pattern.CASE_INSENSITIVE)
+        )
+
         // Promotional / Noise patterns
         private val PROMO_PATTERNS = listOf(
             Pattern.compile("""\b(cashback|discount|coupon|diskon|promo|voucher)\b""", Pattern.CASE_INSENSITIVE),
@@ -73,14 +80,21 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
         var expenseScore = 0.0
         var incomeScore = 0.0
 
-        // 1. Evaluate OTP patterns (High priority noise)
+        // 1. Evaluate Failed / Declined transactions (Highest priority noise - money was not moved)
+        for (pattern in FAILED_TRANSACTION_PATTERNS) {
+            if (pattern.matcher(text).find()) {
+                noiseScore += 10.0
+            }
+        }
+
+        // 2. Evaluate OTP patterns (High priority noise)
         for (pattern in OTP_PATTERNS) {
             if (pattern.matcher(text).find()) {
                 noiseScore += 8.0
             }
         }
 
-        // 2. Evaluate Promotional patterns (High priority noise)
+        // 3. Evaluate Promotional patterns (High priority noise)
         for (pattern in PROMO_PATTERNS) {
             if (pattern.matcher(text).find()) {
                 noiseScore += 6.0

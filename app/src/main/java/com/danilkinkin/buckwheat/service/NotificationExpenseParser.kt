@@ -18,6 +18,11 @@ class NotificationExpenseParser @Inject constructor() {
             Pattern.CASE_INSENSITIVE
         )
 
+        private val FAILED_TRANSACTION_PATTERN = Pattern.compile(
+            """\b(failed|declined|unsuccessful|cancelled|canceled|rejected|expired|gagal|tidak\s+berhasil|dibatalkan|ditolak|kadaluwarsa|batal)\b""",
+            Pattern.CASE_INSENSITIVE
+        )
+
         private val REFUND_PATTERN = Pattern.compile(
             """\b(refund|refunded|reversed|reversal|pengembalian\s+dana)\b""",
             Pattern.CASE_INSENSITIVE
@@ -146,6 +151,7 @@ class NotificationExpenseParser @Inject constructor() {
      * Checks if the notification text matches OTP, Refund, Incoming money, or Promo.
      */
     fun isExcluded(content: String): Boolean {
+        if (FAILED_TRANSACTION_PATTERN.matcher(content).find()) return true
         if (OTP_PATTERN.matcher(content).find()) return true
         if (REFUND_PATTERN.matcher(content).find()) return true
         if (PROMO_PATTERN.matcher(content).find()) return true

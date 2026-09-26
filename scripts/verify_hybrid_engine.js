@@ -9,6 +9,12 @@ const OTP_PATTERNS = [
     /\b(jangan\s+bagikan\s+kode\s+ini)\b/i
 ];
 
+const FAILED_TRANSACTION_PATTERNS = [
+    /\b(failed|declined|unsuccessful|cancelled|canceled|rejected|expired)\b/i,
+    /\b(gagal|tidak\s+berhasil|dibatalkan|ditolak|kadaluwarsa|batal)\b/i,
+    /\b(payment\s+failed|transaction\s+failed|transaksi\s+gagal|pembayaran\s+gagal)\b/i
+];
+
 const PROMO_PATTERNS = [
     /\b(cashback|discount|coupon|diskon|promo|voucher)\b/i,
     /\b(claim\s+your\s+(offer|reward|discount|voucher)?)\b/i,
@@ -45,6 +51,7 @@ function classify(text) {
     let expenseScore = 0.0;
     let incomeScore = 0.0;
 
+    for (const p of FAILED_TRANSACTION_PATTERNS) if (p.test(text)) noiseScore += 10.0;
     for (const p of OTP_PATTERNS) if (p.test(text)) noiseScore += 8.0;
     for (const p of PROMO_PATTERNS) if (p.test(text)) noiseScore += 6.0;
     for (const p of STRONG_EXPENSE_PATTERNS) if (p.test(text)) expenseScore += 4.5;
@@ -54,7 +61,7 @@ function classify(text) {
     for (const p of STRONG_INCOME_PATTERNS) if (p.test(text)) incomeScore += 4.5;
     for (const w of WEAK_INCOME_WORDS) if (lower.includes(w)) incomeScore += 1.5;
 
-    // Suppress false expense/income triggers caused by promotional marketing text
+    // Suppress false expense/income triggers caused by failed transactions or promotional marketing text
     if (noiseScore > 0) {
         expenseScore = Math.max(0, expenseScore - noiseScore * 0.7);
         incomeScore = Math.max(0, incomeScore - noiseScore * 0.7);
@@ -168,17 +175,34 @@ for (const inc of incomes) {
     console.log(`✓ Income classified: [${res.type}] (${(res.confidence * 100).toFixed(1)}%) -> "${inc}"`);
 }
 
-// Test 3: Noise Classification
+// Test 3: Noise Classification (Including Failed/Declined Transactions & OTPs)
 const noise = [
     "Your OTP verification code is 492810. Do not share this code with anyone.",
     "Special discount! Get 50% cashback voucher on your next purchase using code PROMO50.",
     "Security alert: Login detected from a new Windows PC device.",
-    "Selamat Anda memenangkan voucher diskon belanja!"
+    "Selamat Anda memenangkan voucher diskon belanja!",
+    "Pembayaran sebesar 200k ke Google Pay gagal",
+    "Transaction of $150.00 at Apple declined",
+    "Payment to Netflix failed due to insufficient funds",
+    "Transaksi Rp 100.000 di Indomaret dibatalkan"
 ];
 for (const n of noise) {
     const res = classify(n);
     assert.strictEqual(res.type, 'NOISE', `Expected NOISE for: ${n}`);
-    console.log(`✓ Noise correctly rejected: [${res.type}] -> "${n}"`);
+    console.log(`✓ Noise / Failed transaction correctly rejected: [${res.type}] -> "${n}"`);
+}
+
+// 3. Shorthand multiplier extraction
+function parseShorthand(text) {
+    const SHORTHAND_PATTERN = /(?:([a-zA-Z$€£¥₹]+)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)\b/i;
+    const m = text.match(SHORTHAND_PATTERN);
+    if (!m) return null;
+    const base = parseFloat(m[2].replace(',', '.'));
+    const mult = m[3].toLowerCase();
+    let factor = 1;
+    if (['k', 'rb', 'ribu'].includes(mult)) factor = 1000;
+    else if (['m', 'jt', 'juta'].includes(mult)) factor = 1000000;
+    return (base * factor).toFixed(2);
 }
 
 // Test 4: Deterministic Amount Extraction
@@ -189,7 +213,18 @@ assert.strictEqual(parseAmountString("50,000", "IDR"), "50000.00");
 assert.strictEqual(parseAmountString("1250"), "1250.00");
 assert.strictEqual(parseAmountString("1250.5"), "1250.50");
 assert.strictEqual(parseAmountString("45.50"), "45.50");
-console.log('✓ All deterministic number formats parsed perfectly with zero precision drift!');
+assert.strictEqual(parseShorthand("200k"), "200000.00");
+assert.strictEqual(parseShorthand("Pembayaran sebesar 200k ke Google Pay berhasil"), "200000.00");
+assert.strictEqual(parseShorthand("1.5jt"), "1500000.00");
+assert.strictEqual(parseShorthand("50rb"), "50000.00");
+console.log('✓ All deterministic number formats and shorthand multipliers parsed perfectly!');
+
+// Test 5: Successful shorthand payment
+const successPayment = "Pembayaran sebesar 200k ke Google Pay berhasil";
+const successClass = classify(successPayment);
+assert.strictEqual(successClass.type, 'EXPENSE');
+assert.strictEqual(parseShorthand(successPayment), "200000.00");
+console.log(`✓ Successful payment with shorthand parsed: [${successClass.type}] -> 200000.00 IDR`);
 
 console.log('\n=============================================');
 console.log('ALL TESTS PASSED SUCCESSFULLY! (100% verified)');

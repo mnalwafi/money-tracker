@@ -74,6 +74,22 @@ class HybridTransactionCaptureTest {
         }
     }
 
+    @Test
+    fun classifier_failedTransactionNotification_classifiedAsNoise() {
+        val texts = listOf(
+            "Pembayaran sebesar 200k ke Google Pay gagal",
+            "Transaction of $150.00 at Apple declined",
+            "Payment to Netflix failed due to insufficient funds",
+            "Transaksi Rp 100.000 di Indomaret dibatalkan",
+            "Transfer ke Rekening 123456 tidak berhasil"
+        )
+
+        for (text in texts) {
+            val result = classifier.classify(text)
+            assertEquals("Expected NOISE for failed transaction: $text", TransactionClassificationType.NOISE, result.type)
+        }
+    }
+
     // ==========================================
     // 2. Deterministic Extractor Tests
     // ==========================================
@@ -162,6 +178,31 @@ class HybridTransactionCaptureTest {
         assertNotNull(details)
         assertEquals(BigDecimal("250.00"), details?.amount)
         assertEquals("Alice", details?.merchant)
+    }
+
+    @Test
+    fun extractor_shorthandMultipliers_exactAmount() {
+        val details200k = extractor.extract(
+            text = "Pembayaran sebesar 200k ke Google Pay berhasil",
+            title = "BCA"
+        )
+        assertNotNull(details200k)
+        assertEquals(BigDecimal("200000.00"), details200k?.amount)
+        assertEquals("Google Pay", details200k?.merchant)
+
+        val details1_5jt = extractor.extract(
+            text = "Transfer 1.5jt ke Tokopedia",
+            title = "Bank"
+        )
+        assertNotNull(details1_5jt)
+        assertEquals(BigDecimal("1500000.00"), details1_5jt?.amount)
+
+        val details50rb = extractor.extract(
+            text = "Spent 50rb at Lawson",
+            title = "Wallet"
+        )
+        assertNotNull(details50rb)
+        assertEquals(BigDecimal("50000.00"), details50rb?.amount)
     }
 
     // ==========================================

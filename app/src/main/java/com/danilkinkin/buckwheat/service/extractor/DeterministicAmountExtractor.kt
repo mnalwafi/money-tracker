@@ -31,6 +31,11 @@ class DeterministicAmountExtractor @Inject constructor() {
             """([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,3})?)\s*($CURRENCY_REGEX)"""
         )
 
+        // Matches shorthand notations: 200k, 200rb, 200 ribu, 1.5jt, 1.5 juta, 1.5m
+        private val SHORTHAND_AMOUNT_PATTERN = Pattern.compile(
+            """(?i)(?:($CURRENCY_REGEX)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)(?:\s*($CURRENCY_REGEX))?\b"""
+        )
+
         // Fallback for amount without explicit currency: e.g., "paid 45.50" or "debited 25,000"
         private val STANDALONE_AMOUNT_PATTERN = Pattern.compile(
             """\b([0-9]{1,3}(?:[.,][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+[.,][0-9]{1,2}|[0-9]{2,})\b"""
@@ -119,6 +124,31 @@ class DeterministicAmountExtractor @Inject constructor() {
                 val parsed = parseAmountString(rawNum, currency)
                 if (parsed != null && parsed > BigDecimal.ZERO) {
                     return Pair(parsed, currency)
+                }
+            }
+        }
+
+        // Try shorthand pattern with multipliers (e.g. 200k, 200rb, 1.5jt)
+        val shorthandMatcher = SHORTHAND_AMOUNT_PATTERN.matcher(content)
+        if (shorthandMatcher.find()) {
+            val prefixCurrency = shorthandMatcher.group(1)?.trim()
+            val rawNum = shorthandMatcher.group(2)?.trim()
+            val multiplier = shorthandMatcher.group(3)?.lowercase()?.trim()
+            val suffixCurrency = shorthandMatcher.group(4)?.trim()
+            val currency = prefixCurrency ?: suffixCurrency
+
+            if (rawNum != null && multiplier != null) {
+                val base = parseAmountString(rawNum, currency)
+                if (base != null) {
+                    val factor = when (multiplier) {
+                        "k", "rb", "ribu" -> BigDecimal(1000)
+                        "m", "jt", "juta" -> BigDecimal(1000000)
+                        else -> BigDecimal.ONE
+                    }
+                    val total = base.multiply(factor).setScale(2, RoundingMode.HALF_EVEN)
+                    if (total > BigDecimal.ZERO) {
+                        return Pair(total, currency)
+                    }
                 }
             }
         }
