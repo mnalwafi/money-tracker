@@ -13,8 +13,30 @@ All bottom sheets and modal drawers (`DashboardDrawer`, `RecurringTransactionsSh
 - **Sheet Background**: `MaterialTheme.colorScheme.surface` (Token: `BuckwheatDesignSystem.Colors.sheetContainer`).
 - **Elimination of Hardcoded Tints**: Static colors (`Color.White`, `Color.Black`, arbitrary hex values, or mismatched tonal tints) are forbidden for surface containers.
 - **Top Corner Radius**: `RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)` (`BuckwheatDesignSystem.Shapes.sheet`).
-- **Maximum Height Bound**: `maxHeight * 0.88f` (`BuckwheatDesignSystem.Physics.sheetMaxHeightRatio`) to preserve clear top breathing room and visible backdrop context without covering the entire screen.
 - **Drag Handle**: Centered pill affordance (`36.dp × 4.dp`, `CircleShape`) tinted with `onSurfaceVariant` at `0.40f` alpha, without redundant close (X) buttons.
+
+### Drawer Height Hierarchy Rules (T-Shirt Sizing)
+1. **`xl` Drawer (`92%` Screen Height)**:
+   - Token: `BuckwheatDesignSystem.Drawers.xl = 0.92f`.
+   - Applied to: **Settings Drawer**, **Dashboard Drawer**, and **Wallet / Budget Drawer**.
+   - Leaves 8% top breathing room for background context.
+2. **`lg` Drawer (`88%` Screen Height)**:
+   - Token: `BuckwheatDesignSystem.Drawers.lg = 0.88f`.
+   - Applied to: **Recurring & Subscriptions Drawer**, **Viewer History Drawer**, and **Analytics Drawer**.
+   - Leaves 12% top breathing room.
+3. **`default` Drawer (`75%` Screen Height)**:
+   - Token: `BuckwheatDesignSystem.Drawers.default = 0.75f`.
+   - Standard medium-height operational drawer.
+4. **`sm` Drawer (`60%` Screen Height)**:
+   - Token: `BuckwheatDesignSystem.Drawers.sm = 0.60f`.
+   - Small partial drawer for compact selections.
+5. **`xs` Drawer (`45%` Screen Height)**:
+   - Token: `BuckwheatDesignSystem.Drawers.xs = 0.45f`.
+   - Extra-small bottom drawer for concise actions.
+
+> [!NOTE]
+> **Dialogs & Pickers (Excluded from Drawer Sizing)**:
+> Specialized content dialogs such as the **Calendar / DatePicker** (`FinishDateSelector`), TimePicker, and confirmation dialogs are not drawers. They size naturally to fit their intrinsic content without drawer height restrictions.
 
 ---
 

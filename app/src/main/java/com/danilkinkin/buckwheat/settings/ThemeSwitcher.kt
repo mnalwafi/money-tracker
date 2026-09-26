@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -69,7 +71,11 @@ fun ThemeSwitcherDialog(onClose: () -> Unit) {
     }
 
     Surface(Modifier.padding(top = localBottomSheetScrollState.topPadding)) {
-        Column(modifier = Modifier.padding(bottom = navigationBarHeight)) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = navigationBarHeight)
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

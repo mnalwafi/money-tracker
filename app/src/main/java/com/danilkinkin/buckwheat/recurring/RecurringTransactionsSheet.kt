@@ -76,8 +76,8 @@ fun RecurringTransactionsSheet(
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth(),
     ) {
-        // Constrain sheet height to 88% of screen height to leave clear top breathing room
-        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Physics.sheetMaxHeightRatio
+        // Constrain sheet height to 88% of screen height (lg drawer)
+        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Drawers.lg
 
         Surface(
             modifier = Modifier

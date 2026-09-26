@@ -84,7 +84,7 @@ fun DashboardScreen(
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth(),
     ) {
-        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Physics.sheetMaxHeightRatio
+        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Drawers.xl
 
         Surface(
             modifier = Modifier

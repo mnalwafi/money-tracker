@@ -41,6 +41,10 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.roundToInt
 
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
+
 data class BottomSheetScrollState(
     val topPadding: Dp,
 )
@@ -55,6 +59,7 @@ fun BottomSheetWrapper(
     appViewModel: AppViewModel = viewModel(),
     cancelable: Boolean = true,
     showDragHandle: Boolean = true,
+    maxHeightRatio: Float? = null,
     state: ModalBottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden),
     content: @Composable (state: ModalBottomSheetState) -> Unit
 ) {
@@ -157,7 +162,19 @@ fun BottomSheetWrapper(
                         topPadding = statusBarHeight * statusBarFillProgress,
                     )
                 ) {
-                    content(state)
+                    if (maxHeightRatio != null) {
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = maxHeight * maxHeightRatio)
+                            ) {
+                                content(state)
+                            }
+                        }
+                    } else {
+                        content(state)
+                    }
                 }
             }
 

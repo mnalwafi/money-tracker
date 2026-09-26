@@ -70,6 +70,7 @@ fun BottomSheets(
         name = DASHBOARD_SHEET,
         modifier = Modifier.zIndex(1f),
         showDragHandle = false,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.xl,
         state = dashboardSheetState,
     ) { state ->
         val editorViewModel: EditorViewModel = hiltViewModel()
@@ -105,6 +106,7 @@ fun BottomSheets(
         name = WALLET_SHEET,
         modifier = Modifier.zIndex(10f),
         cancelable = !requireSetBudget && !periodFinished,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.xl,
     ) { state ->
         Wallet(
             forceChange = periodFinished || requireSetBudget,
@@ -165,11 +167,17 @@ fun BottomSheets(
     BottomSheetWrapper(
         name = SETTINGS_SHEET,
         modifier = Modifier.zIndex(10f),
+        showDragHandle = false,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.xl,
     ) { state ->
         Settings(
+            sheetState = state,
             onTriedWidget = {
                 coroutineScope.launch { state.callback(emptyMap()) }
-            }
+            },
+            onClose = {
+                coroutineScope.launch { state.hide() }
+            },
         )
     }
 
@@ -177,6 +185,7 @@ fun BottomSheets(
         name = RECURRING_TRANSACTIONS_SHEET,
         modifier = Modifier.zIndex(10f),
         showDragHandle = false,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.lg,
     ) { state ->
         RecurringTransactionsSheet(
             onClose = {
@@ -189,6 +198,7 @@ fun BottomSheets(
         name = RECALCULATE_DAILY_BUDGET_SHEET,
         modifier = Modifier.zIndex(10f),
         cancelable = false,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.xl,
     ) { state ->
         RecalcBudget(
             onClose = {
@@ -201,6 +211,7 @@ fun BottomSheets(
         name = ANALYTICS_SHEET,
         modifier = Modifier.zIndex(10f),
         cancelable = !periodFinished,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.lg,
     ) { state ->
         Analytics(
             activityResultRegistryOwner = activityResultRegistryOwner,
@@ -217,6 +228,7 @@ fun BottomSheets(
         name = VIEWER_HISTORY_SHEET,
         modifier = Modifier.zIndex(10f),
         showDragHandle = false,
+        maxHeightRatio = BuckwheatDesignSystem.Drawers.lg,
     ) { state ->
         ViewerHistory(
             sheetState = state,

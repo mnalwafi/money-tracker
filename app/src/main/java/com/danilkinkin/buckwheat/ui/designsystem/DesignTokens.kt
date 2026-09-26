@@ -62,8 +62,15 @@ object BuckwheatDesignSystem {
         val dragHandleHeight: Dp = 4.dp
     }
 
+    object Drawers {
+        const val xl: Float = 0.92f        // 92% screen height (Settings, Dashboard, Budget)
+        const val lg: Float = 0.88f        // 88% screen height (Recurring & Subscriptions, Viewer History, Analytics)
+        const val default: Float = 0.75f   // 75% standard drawer
+        const val sm: Float = 0.60f        // 60% small drawer
+        const val xs: Float = 0.45f        // 45% compact drawer
+    }
+
     object Physics {
-        const val sheetMaxHeightRatio: Float = 0.88f
         const val springDampingRatio: Float = 0.85f
         const val springStiffness: Float = 380f
         val velocityThreshold: Dp = 125.dp

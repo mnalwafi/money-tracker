@@ -39,7 +39,7 @@ fun ViewerHistory(
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth(),
     ) {
-        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Physics.sheetMaxHeightRatio
+        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Drawers.lg
 
         Surface(
             modifier = Modifier
