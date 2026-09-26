@@ -180,8 +180,6 @@ fun MainScreen(
 
         val isShowSystemKeyboard =
             systemKeyboardHeight != 0.dp && appViewModel.showSystemKeyboard.value
-        val isRequestedShowSystemKeyboard =
-            systemKeyboardHeight != 0.dp || appViewModel.showSystemKeyboard.value
 
         val currentKeyboardHeight = if (isShowSystemKeyboard) {
             with(localDensity) { systemKeyboardHeight.toPx() }
@@ -218,6 +216,9 @@ fun MainScreen(
             targetValue = editorHeight,
             animationSpec = tween(durationMillis = 350),
         )
+
+        val activeEditorHeight = if (isShowSystemKeyboard) editorHeight else editorHeightAnimated
+        val currentEditorHeight = with(localDensity) { activeEditorHeight.toDp() }
 
         Row {
             if (windowSizeClass != WindowWidthSizeClass.Compact) {
@@ -288,27 +289,9 @@ fun MainScreen(
                 }
 
                 if (windowSizeClass == WindowWidthSizeClass.Compact) {
-                    val currentEditorHeight = with(localDensity) {
-                        if (isRequestedShowSystemKeyboard) {
-                            val halfExpanedOffset = (
-                                    -contentHeight +
-                                            navigationBarOffset.toPx() +
-                                            16.dp.toPx() +
-                                            editorHeightAnimated
-                                    ).coerceAtMost(0f)
-
-                            (topSheetState.offset.value.coerceIn(
-                                halfExpanedOffset,
-                                0f
-                            ) + contentHeight - navigationBarOffset.toPx() - 16.dp.toPx()).toDp()
-                        } else {
-                            editorHeightAnimated.toDp()
-                        }
-                    }
-
                     TopSheetLayout(
                         swipeableState = topSheetState,
-                        customHalfHeight = editorHeightAnimated,
+                        customHalfHeight = activeEditorHeight,
                         lockSwipeable = appViewModel.lockSwipeable,
                         lockDraggable = appViewModel.lockDraggable,
                         sheetContentHalfExpand = {

@@ -8,8 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
@@ -23,15 +21,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import kotlinx.coroutines.delay
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilledIconButton
@@ -40,8 +39,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -56,8 +53,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -90,6 +86,7 @@ import com.danilkinkin.buckwheat.editor.EditorViewModel
 import com.danilkinkin.buckwheat.editor.FocusController
 import com.danilkinkin.buckwheat.ui.BuckwheatTheme
 import com.danilkinkin.buckwheat.util.observeLiveData
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -169,7 +166,6 @@ fun CustomTag(
                         focusManager.clearFocus()
                         isEdit = true
                         onEdit(true)
-                        appViewModel.showSystemKeyboard.value = true
                         appViewModel.lockDraggable.value = true
                     }
                 })
@@ -180,13 +176,7 @@ fun CustomTag(
                     .padding(start = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AnimatedVisibility(
-                    visible = isEdit,
-                    enter = scaleIn(tween(durationMillis = 150)),
-                    exit = scaleOut(tween(durationMillis = 150)),
-                ) {
-                    Spacer(Modifier.width(8.dp))
-                }
+                Spacer(Modifier.width(if (isEdit) 8.dp else 4.dp))
                 Icon(
                     modifier = Modifier
                         .width(20.dp)
@@ -194,18 +184,8 @@ fun CustomTag(
                     painter = painterResource(R.drawable.ic_label),
                     contentDescription = null,
                 )
+                Spacer(Modifier.width(if (onlyIcon && !isEdit) 12.dp else 8.dp))
 
-                AnimatedVisibility(
-                    visible = !isEdit,
-                    enter = scaleIn(tween(durationMillis = 150)),
-                    exit = scaleOut(tween(durationMillis = 150)),
-                ) {
-                    if (onlyIcon) {
-                        Spacer(Modifier.width(12.dp))
-                    } else {
-                        Spacer(Modifier.width(8.dp))
-                    }
-                }
                 AnimatedContent(
                     label = "openCloseTaggingEditor",
                     targetState = isEdit,
@@ -227,7 +207,10 @@ fun CustomTag(
                         CommentEditor(
                             value = value,
                             onChange = { value = it },
-                            onApply = { close() }
+                            onApply = { close() },
+                            onFocusReady = {
+                                appViewModel.showSystemKeyboard.value = true
+                            }
                         )
                     } else if (!onlyIcon || value.text.isNotEmpty()) {
                         Text(
@@ -250,27 +233,22 @@ fun CustomTag(
 
             val topBarHeight = LocalWindowInsets.current.calculateTopPadding()
 
-            val height = remember { mutableStateOf(1000.dp) }
-            val popupPositionProvider = DropdownMenuPositionProvider(
-                DpOffset(0.dp, 8.dp),
-                localDensity,
-                topBarHeight,
-            ) { parentBounds, menuBounds ->
-                height.value = with(localDensity) { menuBounds.height.toDp() }
+            val popupPositionProvider = remember(localDensity, topBarHeight) {
+                DropdownMenuPositionProvider(
+                    DpOffset(0.dp, 8.dp),
+                    localDensity,
+                    topBarHeight,
+                )
             }
 
             Popup(
                 popupPositionProvider = popupPositionProvider,
-                onDismissRequest = {
-                },
+                onDismissRequest = {},
             ) {
-                val dismissEvent = remember {
-                    mutableStateOf(false)
-                }
+                val dismissEvent = remember { mutableStateOf(false) }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(height.value)
                         .pointerInput(Unit) {
                             detectTapUnconsumed {
                                 if (!dismissEvent.value) close()
@@ -288,6 +266,7 @@ fun CustomTag(
                             Surface(
                                 modifier = Modifier
                                     .width(extendWidth)
+                                    .heightIn(max = 240.dp)
                                     .pointerInput(Unit) {
                                         detectTapGestures {
                                             dismissEvent.value = true
@@ -361,7 +340,6 @@ internal data class DropdownMenuPositionProvider(
     val contentOffset: DpOffset,
     val density: Density,
     val topBarHeight: Dp,
-    val onPositionCalculated: (IntRect, IntRect) -> Unit = { _, _ -> }
 ) : PopupPositionProvider {
     override fun calculatePosition(
         anchorBounds: IntRect,
@@ -369,46 +347,22 @@ internal data class DropdownMenuPositionProvider(
         layoutDirection: LayoutDirection,
         popupContentSize: IntSize
     ): IntOffset {
-        // The min margin above and below the menu, relative to the screen.
-        val verticalMargin = with(density) { 48.dp.roundToPx() }
-        val topBarHeight = with(density) { topBarHeight.roundToPx() }
-        // The content offset specified using the dropdown offset parameter.
+        val topBarHeightPx = with(density) { topBarHeight.roundToPx() }
         val contentOffsetX = with(density) { contentOffset.x.roundToPx() }
         val contentOffsetY = with(density) { contentOffset.y.roundToPx() }
 
-        // Compute horizontal position.
         val toRight = anchorBounds.left + contentOffsetX
         val toLeft = anchorBounds.right - contentOffsetX - popupContentSize.width
         val toDisplayRight = windowSize.width - popupContentSize.width
         val toDisplayLeft = 0
         val x = if (layoutDirection == LayoutDirection.Ltr) {
-            sequenceOf(
-                toRight,
-                toLeft,
-                // If the anchor gets outside of the window on the left, we want to position
-                // toDisplayLeft for proximity to the anchor. Otherwise, toDisplayRight.
-                if (anchorBounds.left >= 0) toDisplayRight else toDisplayLeft
-            )
+            sequenceOf(toRight, toLeft, if (anchorBounds.left >= 0) toDisplayRight else toDisplayLeft)
         } else {
-            sequenceOf(
-                toLeft,
-                toRight,
-                // If the anchor gets outside of the window on the right, we want to position
-                // toDisplayRight for proximity to the anchor. Otherwise, toDisplayLeft.
-                if (anchorBounds.right <= windowSize.width) toDisplayLeft else toDisplayRight
-            )
-        }.firstOrNull {
-            it >= 0 && it + popupContentSize.width <= windowSize.width
-        } ?: toLeft
+            sequenceOf(toLeft, toRight, if (anchorBounds.right <= windowSize.width) toDisplayLeft else toDisplayRight)
+        }.firstOrNull { it >= 0 && it + popupContentSize.width <= windowSize.width } ?: toLeft
 
-        // Compute vertical position.
-        val yBottom = anchorBounds.top - contentOffsetY
-
-        onPositionCalculated(
-            anchorBounds,
-            IntRect(x, topBarHeight, x + popupContentSize.width, yBottom)
-        )
-        return IntOffset(x, topBarHeight)
+        val y = (anchorBounds.top - contentOffsetY - popupContentSize.height).coerceAtLeast(topBarHeightPx)
+        return IntOffset(x, y)
     }
 }
 
@@ -418,12 +372,12 @@ fun CommentEditor(
     value: TextFieldValue,
     onChange: (comment: TextFieldValue) -> Unit,
     onApply: () -> Unit,
+    onFocusReady: () -> Unit = {},
 ) {
     var focusIsTracking by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
-
-    TextField(
+    BasicTextField(
         modifier = modifier
             .fillMaxWidth()
             .focusRequester(focusRequester)
@@ -433,36 +387,12 @@ fun CommentEditor(
                 }
             },
         value = value,
-        onValueChange = {
-            onChange(it)
-        },
-        trailingIcon = {
-            FilledIconButton(
-                modifier = Modifier.padding(end = 4.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-                onClick = { onApply() },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_apply),
-                    contentDescription = null,
-                )
-            }
-        },
-        textStyle = MaterialTheme.typography.bodyLarge,
-        singleLine = true,
-        shape = RectangleShape,
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            disabledContainerColor = MaterialTheme.colorScheme.surface,
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            errorIndicatorColor = Color.Transparent,
+        onValueChange = onChange,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(
+            color = MaterialTheme.colorScheme.onSurface
         ),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        singleLine = true,
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Sentences,
             imeAction = ImeAction.Done,
@@ -470,14 +400,55 @@ fun CommentEditor(
         keyboardActions = KeyboardActions(
             onDone = { onApply() }
         ),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 2.dp, end = 8.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    if (value.text.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.add_comment),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    innerTextField()
+                }
+                FilledIconButton(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .padding(end = 4.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                    onClick = onApply,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_apply),
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        }
     )
 
-
     LaunchedEffect(Unit) {
-        // Coordinate focus request: delay slightly (260ms) until the chip's AnimatedContent
-        // enter-transition (250ms) finishes, preventing the soft keyboard animation from
-        // colliding directly with Compose's internal expand animation.
+        // Wait for chip expand transition (250ms) to complete cleanly
         delay(260L)
+        onFocusReady()
         focusRequester.requestFocus()
         focusIsTracking = true
     }
