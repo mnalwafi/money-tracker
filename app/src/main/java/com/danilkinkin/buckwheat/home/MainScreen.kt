@@ -31,11 +31,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
@@ -269,6 +268,9 @@ fun MainScreen(
                             modifier = Modifier
                                 .height(with(localDensity) { internalKeyboardHeight.toDp() })
                                 .fillMaxWidth()
+                                .keyboardDashboardSwipeGesture {
+                                    appViewModel.openSheet(PathState(DASHBOARD_SHEET))
+                                }
                         )
                     }
                 }
@@ -350,19 +352,6 @@ fun MainScreen(
             )
         }
 
-        if (windowSizeClass == WindowWidthSizeClass.Compact) {
-            val navBottomPadding = windowInsets.calculateBottomPadding()
-            BottomDashboardDragAffordance(
-                onOpenDashboard = {
-                    appViewModel.openSheet(PathState(DASHBOARD_SHEET))
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(bottom = (navBottomPadding - 12.dp).coerceAtLeast(2.dp))
-            )
-        }
-
         BottomSheets(activityResultRegistryOwner)
 
         if (windowSizeClass == WindowWidthSizeClass.Compact) {
@@ -399,58 +388,40 @@ fun StatusBarStub() {
 }
 
 /**
- * Bottom Drag / Swipe affordance pill allowing users to swipe up or tap from the bottom
- * of the screen to expand the dashboard sheet.
+ * Attaches upward swipe/drag gesture detection to the Keyboard area, safely above
+ * the Android system navigation bar, ensuring normal keypad clicks remain snappy and instant.
  */
-@Composable
-fun BottomDashboardDragAffordance(
-    onOpenDashboard: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val haptic = LocalHapticFeedback.current
-    var totalDragY by remember { mutableFloatStateOf(0f) }
+fun Modifier.keyboardDashboardSwipeGesture(
+    onOpenDashboard: () -> Unit
+): Modifier = this.pointerInput(Unit) {
+    val touchSlop = viewConfiguration.touchSlop
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        var totalDragY = 0f
+        var totalDragX = 0f
+        var isUpwardDrag = false
 
-    Box(
-        modifier = modifier
-            .height(32.dp)
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragStart = { totalDragY = 0f },
-                    onDragEnd = {
-                        if (totalDragY < -18f) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onOpenDashboard()
-                        }
-                        totalDragY = 0f
-                    },
-                    onDragCancel = { totalDragY = 0f },
-                    onVerticalDrag = { change, dragAmount ->
-                        totalDragY += dragAmount
-                        if (totalDragY < -24f) {
-                            change.consume()
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onOpenDashboard()
-                            totalDragY = 0f
-                        }
-                    }
-                )
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (!change.pressed) break
+
+            val dragY = change.position.y - change.previousPosition.y
+            val dragX = change.position.x - change.previousPosition.x
+            totalDragY += dragY
+            totalDragX += dragX
+
+            // Distinct upward drag: vertical displacement > 1.75 * touchSlop (~28px) and primarily vertical
+            if (totalDragY < -touchSlop * 1.75f && kotlin.math.abs(totalDragY) > kotlin.math.abs(totalDragX) * 1.5f) {
+                isUpwardDrag = true
+                change.consume()
+                break
             }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onOpenDashboard
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .width(36.dp)
-                .height(4.dp)
-                .clip(CircleShape)
-                .background(
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-                )
-        )
+        }
+
+        if (isUpwardDrag) {
+            onOpenDashboard()
+        }
     }
 }
 

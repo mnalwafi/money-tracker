@@ -50,6 +50,7 @@ val LocalBottomSheetScrollState = compositionLocalOf { BottomSheetScrollState(0.
 @Composable
 fun BottomSheetWrapper(
     name: String,
+    modifier: Modifier = Modifier,
     appViewModel: AppViewModel = viewModel(),
     cancelable: Boolean = true,
     showDragHandle: Boolean = true,
@@ -124,6 +125,7 @@ fun BottomSheetWrapper(
     }
 
     ModalBottomSheetLayout(
+        modifier = modifier,
         cancelable = cancelable,
         sheetBackgroundColor = MaterialTheme.colorScheme.surface,
         sheetState = state,

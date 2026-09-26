@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -39,7 +40,6 @@ import com.danilkinkin.buckwheat.data.entities.Transaction
 import com.danilkinkin.buckwheat.data.entities.TransactionType
 import com.danilkinkin.buckwheat.ui.colorBad
 import com.danilkinkin.buckwheat.ui.colorGood
-import com.danilkinkin.buckwheat.ui.colorOnEditor
 import com.danilkinkin.buckwheat.util.numberFormat
 import com.danilkinkin.buckwheat.util.prettyDate
 import java.math.BigDecimal
@@ -197,13 +197,13 @@ private fun HeroAllowanceCard(
 ) {
     val context = LocalContext.current
 
-    ElevatedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     ) {
         Column(
             modifier = Modifier
@@ -320,7 +320,7 @@ private fun HeroAllowanceCard(
                         .height(8.dp)
                         .clip(CircleShape),
                     color = if (isOverBudget) colorBad else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -349,7 +349,7 @@ private fun HeroAllowanceCard(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Cycle Period Statistics Row
@@ -415,6 +415,7 @@ private fun ActionBanner(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         ) {
             Row(
                 modifier = Modifier
@@ -507,12 +508,15 @@ private fun UpcomingBillsSection(
         }
 
         if (upcomingBills.isEmpty()) {
-            OutlinedCard(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onManageRecurring),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             ) {
                 Row(
                     modifier = Modifier
@@ -569,8 +573,9 @@ private fun UpcomingBillCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             // Due badge
@@ -599,6 +604,7 @@ private fun UpcomingBillCard(
                 text = item.name,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -657,10 +663,13 @@ private fun RecentActivitySection(
         }
 
         if (recentTransactions.isEmpty()) {
-            OutlinedCard(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             ) {
                 Text(
                     text = stringResource(R.string.dashboard_recent_no_transactions),
@@ -674,8 +683,9 @@ private fun RecentActivitySection(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             ) {
                 Column(modifier = Modifier.padding(vertical = 6.dp)) {
                     recentTransactions.forEachIndexed { index, transaction ->
@@ -749,7 +759,7 @@ private fun RecentTransactionRow(
                     text = title,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = colorOnEditor,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -766,7 +776,7 @@ private fun RecentTransactionRow(
             text = "$prefix${numberFormat(context, transaction.value, currency)}",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = if (isIncome) colorGood else colorOnEditor,
+            color = if (isIncome) colorGood else MaterialTheme.colorScheme.onSurface,
         )
     }
 }

@@ -1,5 +1,6 @@
 package com.danilkinkin.buckwheat.recurring
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -10,9 +11,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -54,21 +57,30 @@ fun RecurringTransactionEditor(
     var nameError by remember { mutableStateOf(false) }
     var amountError by remember { mutableStateOf(false) }
 
-    Surface(Modifier.padding(top = localBottomSheetScrollState.topPadding)) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color.Transparent,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp, bottom = navigationBarHeight + 16.dp),
+                .padding(top = 8.dp, bottom = navigationBarHeight + 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Header
+            // Header with back navigation
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                IconButton(onClick = onClose) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_back),
+                        contentDescription = stringResource(android.R.string.cancel),
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = if (initialTransaction == null) {
                         stringResource(R.string.add_recurring_transaction)
@@ -76,10 +88,9 @@ fun RecurringTransactionEditor(
                         stringResource(R.string.edit_recurring_transaction)
                     },
                     style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                IconButton(onClick = onClose) {
-                    Icon(painter = painterResource(R.drawable.ic_close), contentDescription = null)
-                }
             }
 
             // Name
@@ -94,7 +105,7 @@ fun RecurringTransactionEditor(
                 isError = nameError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
             )
 
             // Amount
@@ -109,7 +120,7 @@ fun RecurringTransactionEditor(
                 isError = amountError,
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
             )
 
             // Recurrence Interval Chips
@@ -142,11 +153,15 @@ fun RecurringTransactionEditor(
             }
 
             // Next Due Date Selector
-            OutlinedCard(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showDatePicker = true },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             ) {
                 Row(
                     modifier = Modifier
@@ -164,6 +179,7 @@ fun RecurringTransactionEditor(
                         Text(
                             text = nextOccurrence.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)),
                             style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                     Icon(
@@ -181,13 +197,16 @@ fun RecurringTransactionEditor(
                 label = { Text(stringResource(R.string.recurring_category_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
             )
 
             // Auto-deduct toggle
             Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
             ) {
                 Row(
                     modifier = Modifier
@@ -200,6 +219,7 @@ fun RecurringTransactionEditor(
                         Text(
                             text = stringResource(R.string.recurring_auto_deduct),
                             style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
                         )
                         Text(
                             text = stringResource(R.string.recurring_auto_deduct_desc),
@@ -216,19 +236,30 @@ fun RecurringTransactionEditor(
 
             // Active toggle (if editing)
             if (initialTransaction != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                 ) {
-                    Text(
-                        text = stringResource(R.string.recurring_active),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Switch(
-                        checked = isActive,
-                        onCheckedChange = { isActive = it },
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.recurring_active),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Switch(
+                            checked = isActive,
+                            onCheckedChange = { isActive = it },
+                        )
+                    }
                 }
             }
 
@@ -245,8 +276,8 @@ fun RecurringTransactionEditor(
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error,
                         ),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
                     ) {
                         Text(stringResource(R.string.recurring_delete))
                     }
@@ -276,8 +307,8 @@ fun RecurringTransactionEditor(
                             onSave(result)
                         }
                     },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) {
                     Text(stringResource(R.string.apply))
                 }

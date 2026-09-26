@@ -38,6 +38,8 @@ import com.danilkinkin.buckwheat.wallet.*
 import kotlinx.coroutines.launch
 import java.util.*
 
+import androidx.compose.ui.zIndex
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun BottomSheets(
@@ -51,85 +53,10 @@ fun BottomSheets(
     val requireSetBudget by spendsViewModel.requireSetBudget.observeAsState(false)
     val periodFinished by spendsViewModel.periodFinished.observeAsState(false)
 
-    BottomSheetWrapper(
-        name = WALLET_SHEET,
-        cancelable = !requireSetBudget && !periodFinished,
-    ) { state ->
-        Wallet(
-            forceChange = periodFinished || requireSetBudget,
-            activityResultRegistryOwner = activityResultRegistryOwner,
-            onClose = {
-                coroutineScope.launch {
-                    state.hide()
-                }
-            }
-        )
-    }
-
-    BottomSheetWrapper(
-        name = DEFAULT_RECALC_BUDGET_CHOOSER,
-    ) { state ->
-        DefaultRecalcBudgetChooser(
-            onClose = {
-                coroutineScope.launch {
-                    state.hide()
-                }
-            }
-        )
-    }
-
-    BottomSheetWrapper(
-        name = CURRENCY_EDITOR,
-    ) { state ->
-        CurrencyEditor(
-            onClose = {
-                coroutineScope.launch {
-                    state.hide()
-                }
-            }
-        )
-    }
-
-    BottomSheetWrapper(
-        name = FINISH_DATE_SELECTOR_SHEET,
-    ) { state ->
-        FinishDateSelector(
-            selectDate = state.args["initialDate"] as Date?,
-            onBackPressed = {
-                coroutineScope.launch {
-                    state.hide()
-                }
-            },
-            onApply = {
-                coroutineScope.launch {
-                    state.hide(mapOf("finishDate" to it))
-                }
-            },
-        )
-    }
-
-    BottomSheetWrapper(
-        name = SETTINGS_SHEET,
-    ) { state ->
-        Settings(
-            onTriedWidget = {
-                coroutineScope.launch { state.callback(emptyMap()) }
-            }
-        )
-    }
-
-    BottomSheetWrapper(
-        name = RECURRING_TRANSACTIONS_SHEET,
-    ) { state ->
-        RecurringTransactionsSheet(
-            onClose = {
-                coroutineScope.launch { state.hide() }
-            }
-        )
-    }
-
+    // Primary Overview Dashboard Sheet (Base sheet layer at zIndex 1)
     BottomSheetWrapper(
         name = DASHBOARD_SHEET,
+        modifier = Modifier.zIndex(1f),
         showDragHandle = false,
     ) { state ->
         val editorViewModel: EditorViewModel = hiltViewModel()
@@ -159,8 +86,94 @@ fun BottomSheets(
         )
     }
 
+    // Secondary / Child Sheets (Stacking layer at zIndex 10 so they always render above Dashboard)
+    BottomSheetWrapper(
+        name = WALLET_SHEET,
+        modifier = Modifier.zIndex(10f),
+        cancelable = !requireSetBudget && !periodFinished,
+    ) { state ->
+        Wallet(
+            forceChange = periodFinished || requireSetBudget,
+            activityResultRegistryOwner = activityResultRegistryOwner,
+            onClose = {
+                coroutineScope.launch {
+                    state.hide()
+                }
+            }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = DEFAULT_RECALC_BUDGET_CHOOSER,
+        modifier = Modifier.zIndex(10f),
+    ) { state ->
+        DefaultRecalcBudgetChooser(
+            onClose = {
+                coroutineScope.launch {
+                    state.hide()
+                }
+            }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = CURRENCY_EDITOR,
+        modifier = Modifier.zIndex(10f),
+    ) { state ->
+        CurrencyEditor(
+            onClose = {
+                coroutineScope.launch {
+                    state.hide()
+                }
+            }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = FINISH_DATE_SELECTOR_SHEET,
+        modifier = Modifier.zIndex(10f),
+    ) { state ->
+        FinishDateSelector(
+            selectDate = state.args["initialDate"] as Date?,
+            onBackPressed = {
+                coroutineScope.launch {
+                    state.hide()
+                }
+            },
+            onApply = {
+                coroutineScope.launch {
+                    state.hide(mapOf("finishDate" to it))
+                }
+            },
+        )
+    }
+
+    BottomSheetWrapper(
+        name = SETTINGS_SHEET,
+        modifier = Modifier.zIndex(10f),
+    ) { state ->
+        Settings(
+            onTriedWidget = {
+                coroutineScope.launch { state.callback(emptyMap()) }
+            }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = RECURRING_TRANSACTIONS_SHEET,
+        modifier = Modifier.zIndex(10f),
+        showDragHandle = false,
+    ) { state ->
+        RecurringTransactionsSheet(
+            onClose = {
+                coroutineScope.launch { state.hide() }
+            }
+        )
+    }
+
     BottomSheetWrapper(
         name = RECALCULATE_DAILY_BUDGET_SHEET,
+        modifier = Modifier.zIndex(10f),
         cancelable = false,
     ) { state ->
         RecalcBudget(
@@ -172,6 +185,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = ANALYTICS_SHEET,
+        modifier = Modifier.zIndex(10f),
         cancelable = !periodFinished,
     ) { state ->
         Analytics(
@@ -185,10 +199,13 @@ fun BottomSheets(
         )
     }
 
-    BottomSheetWrapper(name = VIEWER_HISTORY_SHEET) {
+    BottomSheetWrapper(
+        name = VIEWER_HISTORY_SHEET,
+        modifier = Modifier.zIndex(10f),
+    ) { state ->
         ViewerHistory(
             onClose = {
-                coroutineScope.launch { it.hide() }
+                coroutineScope.launch { state.hide() }
             }
         )
     }
