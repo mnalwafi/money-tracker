@@ -216,8 +216,10 @@ fun BottomSheets(
     BottomSheetWrapper(
         name = VIEWER_HISTORY_SHEET,
         modifier = Modifier.zIndex(10f),
+        showDragHandle = false,
     ) { state ->
         ViewerHistory(
+            sheetState = state,
             onClose = {
                 coroutineScope.launch { state.hide() }
             }

@@ -9,12 +9,12 @@ All UI components, drawers, sheets, and dialogs must adhere to these unified spe
 ## 1. Unified Sheet Backgrounds & Elevation Architecture
 
 ### Container Treatment
-All bottom sheets and modal drawers (`DashboardDrawer`, `RecurringTransactionsSheet`, `Wallet`, `Settings`) must share the exact same surface background:
-- **Sheet Background**: `MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)` (Token: `BuckwheatDesignSystem.Colors.sheetContainer`).
-- **Elimination of Hardcoded Tints**: Static colors (`Color.White`, `Color.Black`, arbitrary hex values) are forbidden for surface containers.
+All bottom sheets and modal drawers (`DashboardDrawer`, `RecurringTransactionsSheet`, `Wallet`, `Settings`, `ViewerHistory`) share the exact same clean surface background:
+- **Sheet Background**: `MaterialTheme.colorScheme.surface` (Token: `BuckwheatDesignSystem.Colors.sheetContainer`).
+- **Elimination of Hardcoded Tints**: Static colors (`Color.White`, `Color.Black`, arbitrary hex values, or mismatched tonal tints) are forbidden for surface containers.
 - **Top Corner Radius**: `RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)` (`BuckwheatDesignSystem.Shapes.sheet`).
-- **Maximum Height Bound**: `maxHeight * 0.88f` (`BuckwheatDesignSystem.Physics.sheetMaxHeightRatio`) to preserve clear top breathing room and visible backdrop context.
-- **Drag Handle**: Centered pill affordance (`36.dp × 4.dp`, `CircleShape`) tinted with `onSurfaceVariant` at `0.40f` alpha.
+- **Maximum Height Bound**: `maxHeight * 0.88f` (`BuckwheatDesignSystem.Physics.sheetMaxHeightRatio`) to preserve clear top breathing room and visible backdrop context without covering the entire screen.
+- **Drag Handle**: Centered pill affordance (`36.dp × 4.dp`, `CircleShape`) tinted with `onSurfaceVariant` at `0.40f` alpha, without redundant close (X) buttons.
 
 ---
 

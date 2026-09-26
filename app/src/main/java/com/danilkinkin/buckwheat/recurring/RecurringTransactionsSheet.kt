@@ -84,8 +84,8 @@ fun RecurringTransactionsSheet(
                 .fillMaxWidth()
                 .height(maxSheetHeight),
             shape = BuckwheatDesignSystem.Shapes.sheet,
-            color = BuckwheatDesignSystem.Colors.sheetContainer,
-            tonalElevation = 1.dp,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -337,8 +337,8 @@ fun RecurringTransactionsSheet(
                                 // Sticky Bottom Action Bar when items exist
                                 Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
-                                    tonalElevation = 2.dp,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    tonalElevation = 0.dp,
                                 ) {
                                     Box(
                                         modifier = Modifier

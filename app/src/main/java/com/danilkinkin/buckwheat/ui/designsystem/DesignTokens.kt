@@ -77,7 +77,7 @@ object BuckwheatDesignSystem {
         val sheetContainer: Color
             @Composable
             @ReadOnlyComposable
-            get() = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            get() = MaterialTheme.colorScheme.surface
 
         /**
          * Standard card container color aligned with Material 3 dynamic color tokens.

@@ -1,70 +1,96 @@
 package com.danilkinkin.buckwheat.analytics
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.R
-import com.danilkinkin.buckwheat.base.LocalBottomSheetScrollState
+import com.danilkinkin.buckwheat.base.ModalBottomSheetState
+import com.danilkinkin.buckwheat.dashboard.sheetDragDownGesture
 import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.SpendsViewModel
 import com.danilkinkin.buckwheat.history.History
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 
 const val VIEWER_HISTORY_SHEET = "viewerHistory"
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ViewerHistory(
+    sheetState: ModalBottomSheetState? = null,
     spendsViewModel: SpendsViewModel = hiltViewModel(),
     appViewModel: AppViewModel = hiltViewModel(),
     onClose: () -> Unit = {},
 ) {
-    val localBottomSheetScrollState = LocalBottomSheetScrollState.current
+    val coroutineScope = rememberCoroutineScope()
 
-    Surface(Modifier.padding(top = localBottomSheetScrollState.topPadding)) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        val maxSheetHeight = maxHeight * BuckwheatDesignSystem.Physics.sheetMaxHeightRatio
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(maxSheetHeight),
+            shape = BuckwheatDesignSystem.Shapes.sheet,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
             ) {
-                IconButton(
-                    onClick = { onClose() },
+                // Centered Material You Drag Handle Pill
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .sheetDragDownGesture(sheetState, coroutineScope, onClose)
+                        .padding(top = BuckwheatDesignSystem.Spacing.m, bottom = BuckwheatDesignSystem.Spacing.xs),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_close),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                    Box(
+                        modifier = Modifier
+                            .width(BuckwheatDesignSystem.Controls.dragHandleWidth)
+                            .height(BuckwheatDesignSystem.Controls.dragHandleHeight)
+                            .clip(CircleShape)
+                            .background(BuckwheatDesignSystem.Colors.dragHandle),
                     )
                 }
-                Spacer(Modifier.weight(1F))
-                Text(
-                    text = stringResource(R.string.history_title),
-                    style = MaterialTheme.typography.titleLarge,
+
+                // Clean Header Title without close X button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .sheetDragDownGesture(sheetState, coroutineScope, onClose)
+                        .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding, vertical = BuckwheatDesignSystem.Spacing.s),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = stringResource(R.string.history_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                // History Content
+                History(
+                    modifier = Modifier.weight(1f),
+                    readOnly = true,
                 )
-                Spacer(Modifier.weight(1F))
-                Spacer(Modifier.width(48.dp))
             }
-            History(
-                readOnly = true,
-            )
         }
     }
 }

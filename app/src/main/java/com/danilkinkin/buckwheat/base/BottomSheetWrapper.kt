@@ -128,7 +128,7 @@ fun BottomSheetWrapper(
     ModalBottomSheetLayout(
         modifier = modifier,
         cancelable = cancelable,
-        sheetBackgroundColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+        sheetBackgroundColor = MaterialTheme.colorScheme.surface,
         sheetState = state,
         predictiveBackProgress = predictiveBackProgress,
         sheetShape = MaterialTheme.shapes.extraLarge.copy(
