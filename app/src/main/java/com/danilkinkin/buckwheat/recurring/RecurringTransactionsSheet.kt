@@ -41,14 +41,26 @@ import com.danilkinkin.buckwheat.util.numberFormat
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextOverflow
+import com.danilkinkin.buckwheat.base.ModalBottomSheetState
+import com.danilkinkin.buckwheat.dashboard.sheetDragDownGesture
+import com.danilkinkin.buckwheat.ui.colorBad
+import com.danilkinkin.buckwheat.ui.colorNotGood
+import com.danilkinkin.buckwheat.ui.colorGood
+
 const val RECURRING_TRANSACTIONS_SHEET = "recurring.list"
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun RecurringTransactionsSheet(
     onClose: () -> Unit,
+    sheetState: ModalBottomSheetState? = null,
     viewModel: RecurringViewModel = hiltViewModel(),
     appViewModel: AppViewModel = hiltViewModel(),
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val navigationBarHeight = androidx.compose.ui.unit.max(
         LocalWindowInsets.current.calculateBottomPadding(),
@@ -94,6 +106,7 @@ fun RecurringTransactionsSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .sheetDragDownGesture(sheetState, coroutineScope, onClose)
                         .padding(top = BuckwheatDesignSystem.Spacing.m, bottom = BuckwheatDesignSystem.Spacing.xs),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -161,16 +174,17 @@ fun RecurringTransactionsSheet(
                         Column(
                             modifier = Modifier.fillMaxSize(),
                         ) {
-                            // Clean Header Title (No close 'X' and no top '+' icon)
-                            Column(
+                            // Clean Centered Header Title
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = BuckwheatDesignSystem.Spacing.xxl, vertical = BuckwheatDesignSystem.Spacing.s),
+                                    .sheetDragDownGesture(sheetState, coroutineScope, onClose)
+                                    .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding, vertical = BuckwheatDesignSystem.Spacing.s),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = stringResource(R.string.recurring_transactions_title),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
+                                    style = BuckwheatDesignSystem.Typography.drawerTitle,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                             }
@@ -237,47 +251,109 @@ fun RecurringTransactionsSheet(
                                         .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding),
                                     verticalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.m),
                                 ) {
-                                    // Summary Card
+                                    // Summary Hero Card matching Wallet drawer fidelity
                                     item {
                                         val formattedMonthly = numberFormat(context, monthlyCommitment, currency = currency)
                                         val formattedReserved = numberFormat(context, reservedThisPeriod, currency = currency)
+                                        val activeCount = allTransactions.count { it.isActive }
 
-                                        Card(
+                                        Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(vertical = BuckwheatDesignSystem.Spacing.xs),
-                                            shape = BuckwheatDesignSystem.Shapes.card,
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                                            ),
-                                            border = BuckwheatDesignSystem.Colors.cardBorder,
+                                                .padding(vertical = BuckwheatDesignSystem.Spacing.xs)
+                                                .clip(shape = BuckwheatDesignSystem.Shapes.cardHero)
                                         ) {
-                                            Column(modifier = Modifier.padding(BuckwheatDesignSystem.Spacing.cardPadding)) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    Column {
+                                            Card(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = BuckwheatDesignSystem.Shapes.cardHero,
+                                                colors = CardDefaults.cardColors(
+                                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                ),
+                                            ) {
+                                                val textColor = LocalContentColor.current
+                                                Column(modifier = Modifier.padding(BuckwheatDesignSystem.Spacing.heroPadding)) {
+                                                    // Header row with category and rotated active count chip
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                    ) {
                                                         Text(
-                                                            text = stringResource(R.string.monthly_commitment_total, formattedMonthly),
-                                                            style = MaterialTheme.typography.titleMedium,
+                                                            text = stringResource(R.string.recurring_monthly_commitment),
+                                                            style = MaterialTheme.typography.labelMedium,
+                                                            color = textColor.copy(alpha = 0.7f),
                                                             fontWeight = FontWeight.SemiBold,
-                                                            color = MaterialTheme.colorScheme.onSurface,
                                                         )
-                                                        Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.xs))
+
+                                                        Surface(
+                                                            shape = CircleShape,
+                                                            color = textColor,
+                                                            contentColor = MaterialTheme.colorScheme.primaryContainer,
+                                                            modifier = Modifier
+                                                                .rotate(3f)
+                                                                .padding(vertical = 2.dp),
+                                                        ) {
+                                                            Text(
+                                                                text = pluralStringResource(R.plurals.active_subscriptions_count, activeCount, activeCount),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                fontWeight = FontWeight.Bold,
+                                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                                            )
+                                                        }
+                                                    }
+
+                                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                                    // Large Monthly Commitment Amount
+                                                    Text(
+                                                        text = formattedMonthly,
+                                                        style = MaterialTheme.typography.displayMedium,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = textColor,
+                                                    )
+
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = stringResource(R.string.recurring_monthly_commitment_desc),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = textColor.copy(alpha = 0.75f),
+                                                    )
+
+                                                    Spacer(modifier = Modifier.height(14.dp))
+                                                    HorizontalDivider(color = textColor.copy(alpha = 0.15f))
+                                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                                    // Period Reserved Row
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        ) {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.ic_autorenew),
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(16.dp),
+                                                                tint = textColor.copy(alpha = 0.8f),
+                                                            )
+                                                            Text(
+                                                                text = stringResource(R.string.recurring_reserved_this_cycle),
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = textColor.copy(alpha = 0.8f),
+                                                            )
+                                                        }
+
                                                         Text(
-                                                            text = stringResource(R.string.reserved_in_period, formattedReserved),
+                                                            text = formattedReserved,
                                                             style = MaterialTheme.typography.bodyMedium,
-                                                            color = MaterialTheme.colorScheme.primary,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = textColor,
                                                         )
                                                     }
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.ic_autorenew),
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(32.dp),
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                    )
                                                 }
                                             }
                                         }
@@ -401,6 +477,13 @@ private fun RecurringItemCard(
         else -> pluralStringResource(R.plurals.overdue_by_days, -daysDiff, -daysDiff)
     }
 
+    val urgencyColor = when {
+        !item.isActive -> MaterialTheme.colorScheme.onSurfaceVariant
+        daysDiff < 0 -> colorBad
+        daysDiff <= 3 -> colorNotGood
+        else -> MaterialTheme.colorScheme.primary
+    }
+
     val intervalText = when (item.interval) {
         RecurrenceInterval.DAILY -> stringResource(R.string.interval_daily)
         RecurrenceInterval.WEEKLY -> stringResource(R.string.interval_weekly)
@@ -412,7 +495,7 @@ private fun RecurringItemCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = BuckwheatDesignSystem.Shapes.card,
+        shape = BuckwheatDesignSystem.Shapes.cardItem,
         colors = CardDefaults.cardColors(
             containerColor = if (item.isActive) {
                 MaterialTheme.colorScheme.surfaceContainer
@@ -422,47 +505,71 @@ private fun RecurringItemCard(
         ),
         border = BuckwheatDesignSystem.Colors.cardBorder,
     ) {
-        Column(modifier = Modifier.padding(BuckwheatDesignSystem.Spacing.cardPadding)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(BuckwheatDesignSystem.Spacing.s),
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (item.isActive) urgencyColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHighest
+                            ),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.padding(top = BuckwheatDesignSystem.Spacing.xs),
+                        Icon(
+                            painter = painterResource(R.drawable.ic_autorenew),
+                            contentDescription = null,
+                            tint = if (item.isActive) urgencyColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Text(
-                                text = intervalText,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.padding(horizontal = BuckwheatDesignSystem.Spacing.s, vertical = BuckwheatDesignSystem.Spacing.xxs),
-                            )
-                        }
-                        if (item.autoDeduct) {
                             Surface(
                                 shape = CircleShape,
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                                modifier = Modifier.padding(top = BuckwheatDesignSystem.Spacing.xs),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
                             ) {
                                 Text(
-                                    text = "Auto",
+                                    text = intervalText,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                    modifier = Modifier.padding(horizontal = BuckwheatDesignSystem.Spacing.s, vertical = BuckwheatDesignSystem.Spacing.xxs),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 )
+                            }
+                            if (item.autoDeduct) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                ) {
+                                    Text(
+                                        text = "Auto",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    )
+                                }
                             }
                         }
                     }
@@ -475,17 +582,26 @@ private fun RecurringItemCard(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
-                    Text(
-                        text = dueText,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = if (daysDiff <= 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = CircleShape,
+                        color = urgencyColor.copy(alpha = 0.12f),
+                    ) {
+                        Text(
+                            text = dueText,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = urgencyColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        )
+                    }
                 }
             }
 
             if (item.isActive && daysDiff <= 7) {
-                Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.m))
+                Spacer(modifier = Modifier.height(14.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -494,17 +610,21 @@ private fun RecurringItemCard(
                     TextButton(onClick = onSkip) {
                         Text(stringResource(R.string.recurring_skip))
                     }
-                    Spacer(modifier = Modifier.width(BuckwheatDesignSystem.Spacing.s))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = onPayNow,
-                        contentPadding = PaddingValues(horizontal = BuckwheatDesignSystem.Spacing.l, vertical = 6.dp),
-                        shape = BuckwheatDesignSystem.Shapes.medium,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                        shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                     ) {
-                        Text(stringResource(R.string.recurring_mark_paid))
+                        Text(
+                            text = stringResource(R.string.recurring_mark_paid),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
                     }
                 }
             }

@@ -188,6 +188,7 @@ fun BottomSheets(
         maxHeightRatio = BuckwheatDesignSystem.Drawers.lg,
     ) { state ->
         RecurringTransactionsSheet(
+            sheetState = state,
             onClose = {
                 coroutineScope.launch { state.hide() }
             }

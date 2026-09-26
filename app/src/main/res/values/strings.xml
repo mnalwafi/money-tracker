@@ -193,6 +193,13 @@
   <string name="reserved_in_period">Reserved in current period: %1$s</string>
   <string name="reserved_recurring_label">Reserved: %1$s</string>
   <string name="reserved_recurring_description">Buckwheat reserved %1$s from your remaining pool for upcoming fixed obligations before your period ends, preventing mid-cycle allowance drops.</string>
+  <string name="recurring_monthly_commitment">Monthly Commitment</string>
+  <string name="recurring_monthly_commitment_desc">Estimated fixed monthly obligations</string>
+  <string name="recurring_reserved_this_cycle">Reserved for current period</string>
+  <plurals name="active_subscriptions_count">
+    <item quantity="one">%1$d active</item>
+    <item quantity="other">%1$d active</item>
+  </plurals>
   <string name="recurring_bill_due_title">Bill Due Today</string>
   <string name="recurring_bill_due_body">%1$s (%2$s) is due today. Tap to log now.</string>
   <string name="recurring_mark_paid">Log Now</string>

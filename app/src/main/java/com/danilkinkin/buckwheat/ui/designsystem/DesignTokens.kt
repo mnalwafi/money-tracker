@@ -12,6 +12,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+
 /**
  * Buckwheat Centralized Design System Tokens
  *
@@ -20,6 +23,7 @@ import androidx.compose.ui.unit.dp
  * 2. Component corner shapes and radii
  * 3. Dynamic surface containers and borders
  * 4. Control dimensions and gesture physics constants
+ * 5. Typography tokens (drawer headers, card titles)
  */
 object BuckwheatDesignSystem {
 
@@ -50,6 +54,8 @@ object BuckwheatDesignSystem {
         val input: Shape = RoundedCornerShape(14.dp)
         val button: Shape = RoundedCornerShape(16.dp)
         val card: Shape = RoundedCornerShape(20.dp)
+        val cardHero: Shape = RoundedCornerShape(28.dp)
+        val cardItem: Shape = RoundedCornerShape(22.dp)
         val sheet: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
         val pill: Shape = CircleShape
     }
@@ -60,6 +66,19 @@ object BuckwheatDesignSystem {
         val smallButtonHeight: Dp = 40.dp
         val dragHandleWidth: Dp = 36.dp
         val dragHandleHeight: Dp = 4.dp
+    }
+
+    object Typography {
+        /**
+         * Universal Drawer Title Style: applied to all sheets (Dashboard, Recurring, History, Settings, Wallet).
+         * Standardized to MaterialTheme.typography.titleLarge + Bold, centered in header.
+         */
+        val drawerTitle: TextStyle
+            @Composable
+            @ReadOnlyComposable
+            get() = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+            )
     }
 
     object Drawers {
@@ -74,6 +93,8 @@ object BuckwheatDesignSystem {
         const val springDampingRatio: Float = 0.85f
         const val springStiffness: Float = 380f
         val velocityThreshold: Dp = 125.dp
+        val dismissThreshold: Dp = 40.dp
+        const val dismissVelocityThreshold: Float = 150f
         const val dragSlopMultiplier: Float = 1.75f
     }
 

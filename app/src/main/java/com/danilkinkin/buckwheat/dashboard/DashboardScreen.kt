@@ -1,6 +1,9 @@
 package com.danilkinkin.buckwheat.dashboard
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FloatTweenSpec
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -22,12 +25,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -44,14 +50,20 @@ import com.danilkinkin.buckwheat.LocalWindowInsets
 import com.danilkinkin.buckwheat.R
 import com.danilkinkin.buckwheat.base.ModalBottomSheetState
 import com.danilkinkin.buckwheat.base.ModalBottomSheetValue
+import com.danilkinkin.buckwheat.base.WavyShape
 import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
 import com.danilkinkin.buckwheat.data.entities.Transaction
 import com.danilkinkin.buckwheat.data.entities.TransactionType
 import com.danilkinkin.buckwheat.ui.colorBad
 import com.danilkinkin.buckwheat.ui.colorGood
+import com.danilkinkin.buckwheat.ui.colorNotGood
 import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
+import com.danilkinkin.buckwheat.util.clamp
+import com.danilkinkin.buckwheat.util.combineColors
+import com.danilkinkin.buckwheat.util.harmonize
 import com.danilkinkin.buckwheat.util.numberFormat
 import com.danilkinkin.buckwheat.util.prettyDate
+import com.danilkinkin.buckwheat.util.toPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -145,10 +157,11 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.s))
                 }
 
-                // Quick-Add Sticky Action Bar
+                // Quick-Add Sticky Action Bar with swipe-down dismissal
                 QuickAddBottomBar(
                     onQuickAdd = onQuickAdd,
                     bottomPadding = navigationBarHeight,
+                    modifier = Modifier.sheetDragDownGesture(sheetState, coroutineScope, onClose),
                 )
             }
         }
@@ -179,33 +192,29 @@ fun DashboardDragHandle(
 }
 
 /**
- * Minimalist dashboard header showing title and current date without redundant close/wallet action buttons.
+ * Standardized centered dashboard header with titleLarge typography matching ViewerHistory & Settings.
  */
 @Composable
 private fun DashboardHeader(
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = BuckwheatDesignSystem.Spacing.xl, vertical = 6.dp),
+            .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding, vertical = BuckwheatDesignSystem.Spacing.s),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = stringResource(R.string.dashboard_title),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = BuckwheatDesignSystem.Typography.drawerTitle,
             color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = prettyDate(java.util.Date(), showTime = false, human = true),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
 /**
  * 1:1 Touch tracking and velocity-sensitive fling snap gesture for dismissing the dashboard sheet.
+ * Uses a forgiving 40.dp threshold and 150f velocity cutoff to ensure smooth, effortless dismissal like Settings.
  */
 @OptIn(ExperimentalMaterialApi::class)
 fun Modifier.sheetDragDownGesture(
@@ -214,10 +223,12 @@ fun Modifier.sheetDragDownGesture(
     onClose: () -> Unit,
 ): Modifier = if (sheetState == null) this else this.pointerInput(sheetState) {
     val velocityTracker = VelocityTracker()
+    val dismissThresholdPx = with(this@pointerInput) { BuckwheatDesignSystem.Physics.dismissThreshold.toPx() }
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         velocityTracker.resetTracking()
         velocityTracker.addPosition(down.uptimeMillis, down.position)
+        var totalDragY = 0f
 
         while (true) {
             val event = awaitPointerEvent(PointerEventPass.Main)
@@ -227,24 +238,30 @@ fun Modifier.sheetDragDownGesture(
             velocityTracker.addPosition(change.uptimeMillis, change.position)
             val dragY = change.position.y - change.previousPosition.y
             if (dragY != 0f) {
-                change.consume()
-                sheetState.performDrag(dragY)
+                totalDragY += dragY
+                if (totalDragY > 0f) {
+                    change.consume()
+                    sheetState.performDrag(dragY)
+                }
             }
         }
 
         val velocity = velocityTracker.calculateVelocity()
         coroutineScope.launch {
-            sheetState.performFling(velocity.y)
-            if (sheetState.currentValue == ModalBottomSheetValue.Hidden) {
+            if (totalDragY > dismissThresholdPx || velocity.y > BuckwheatDesignSystem.Physics.dismissVelocityThreshold) {
+                sheetState.hide()
                 onClose()
+            } else {
+                sheetState.animateTo(ModalBottomSheetValue.Expanded)
             }
         }
     }
 }
 
 /**
- * Modernized Hero Card presenting today's safe allowance with prominent typography,
- * an integrated spend indicator, and cycle progress.
+ * Hero Card presenting today's safe allowance with live animated wavy background fill,
+ * dynamic color harmonization based on remaining allowance, prominent typography, and cycle progress.
+ * Harmonized to match the visual fidelity and physics of the Budget drawer.
  */
 @Composable
 private fun HeroAllowanceCard(
@@ -253,28 +270,28 @@ private fun HeroAllowanceCard(
 ) {
     val context = LocalContext.current
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+    if (!uiState.isBudgetSet) {
+        // No active budget state
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = BuckwheatDesignSystem.Shapes.cardHero,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         ) {
-            if (!uiState.isBudgetSet) {
-                // No active budget state
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(BuckwheatDesignSystem.Spacing.heroPadding),
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(52.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center,
@@ -283,14 +300,14 @@ private fun HeroAllowanceCard(
                             painter = painterResource(R.drawable.ic_balance_wallet),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(26.dp),
                         )
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.dashboard_no_budget_title),
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text = stringResource(R.string.dashboard_no_budget_desc),
@@ -299,152 +316,230 @@ private fun HeroAllowanceCard(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onOpenWallet,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text(text = stringResource(R.string.dashboard_set_budget))
-                }
-            } else {
-                // Active Budget Hero Content
-                val isOverBudget = uiState.todayAllowance < BigDecimal.ZERO
-                val target = uiState.dailyTarget
-                val spent = uiState.todaySpent
-
-                val progressTarget = if (target > BigDecimal.ZERO) {
-                    (spent.divide(target, 4, RoundingMode.HALF_EVEN)).toFloat().coerceIn(0f, 1f)
-                } else {
-                    0f
-                }
-                val animatedProgress by animateFloatAsState(
-                    targetValue = progressTarget,
-                    animationSpec = tween(durationMillis = 600),
-                    label = "dailySpendProgress",
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.dashboard_hero_subtitle),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
-                    )
-
-                    // Status Pill
-                    Surface(
-                        shape = CircleShape,
-                        color = if (isOverBudget) colorBad.copy(alpha = 0.15f) else colorGood.copy(alpha = 0.15f),
-                    ) {
-                        Text(
-                            text = stringResource(if (isOverBudget) R.string.dashboard_over_budget else R.string.dashboard_on_track),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isOverBudget) colorBad else colorGood,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Primary Safe Allowance Amount
-                Text(
-                    text = numberFormat(
-                        context = context,
-                        value = uiState.todayAllowance.coerceAtLeast(BigDecimal.ZERO),
-                        currency = uiState.currency,
-                        trimDecimalPlaces = false,
-                    ),
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isOverBudget) colorBad else MaterialTheme.colorScheme.onSurface,
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Integrated Linear Spend Indicator
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape),
-                    color = if (isOverBudget) colorBad else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Spent today vs daily target
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .height(48.dp),
+                    shape = BuckwheatDesignSystem.Shapes.button,
                 ) {
                     Text(
-                        text = stringResource(
-                            R.string.dashboard_spent_today,
-                            numberFormat(context, spent, uiState.currency, trimDecimalPlaces = true),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.dashboard_daily_target,
-                            numberFormat(context, target, uiState.currency, trimDecimalPlaces = true),
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Cycle Period Statistics Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable(onClick = onOpenWallet),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_calendar),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.dashboard_period_remaining,
-                                numberFormat(context, uiState.periodRemainingPool, uiState.currency, trimDecimalPlaces = true),
-                                numberFormat(context, uiState.periodTotalBudget, uiState.currency, trimDecimalPlaces = true),
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-
-                    Text(
-                        text = stringResource(R.string.dashboard_period_days_left, uiState.periodDaysLeft),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        text = stringResource(R.string.dashboard_set_budget),
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                     )
+                }
+            }
+        }
+    } else {
+        // Active Budget Hero Content with Live Wavy Background Fill
+        val isOverBudget = uiState.todayAllowance < BigDecimal.ZERO
+        val target = uiState.dailyTarget
+        val spent = uiState.todaySpent
+        val allowance = uiState.todayAllowance
+
+        val percent = if (target > BigDecimal.ZERO) {
+            (allowance.divide(target, 4, RoundingMode.HALF_EVEN)).toFloat().coerceIn(0f, 1f)
+        } else {
+            0f
+        }
+
+        val shift = remember { Animatable(0f) }
+        val coroutineScope = rememberCoroutineScope()
+
+        LaunchedEffect(Unit) {
+            fun anim() {
+                coroutineScope.launch {
+                    shift.animateTo(
+                        1f,
+                        animationSpec = FloatTweenSpec(6000, 0, LinearEasing)
+                    )
+                    shift.snapTo(0f)
+                    anim()
+                }
+            }
+            anim()
+        }
+
+        val harmonizedColor = toPalette(
+            harmonize(
+                combineColors(
+                    listOf(
+                        colorBad,
+                        colorNotGood,
+                        colorGood,
+                    ),
+                    percent,
+                )
+            )
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape = BuckwheatDesignSystem.Shapes.cardHero)
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = BuckwheatDesignSystem.Shapes.cardHero,
+                colors = CardDefaults.cardColors(
+                    containerColor = harmonizedColor.container,
+                    contentColor = harmonizedColor.onContainer,
+                ),
+            ) {
+                val textColor = LocalContentColor.current
+                Box(
+                    Modifier
+                        .height(IntrinsicSize.Min)
+                        .fillMaxWidth()
+                ) {
+                    // Animated Wavy Liquid Fill (Matching Wallet's RestAndSpentBudgetCard)
+                    Box(
+                        Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    harmonizedColor.main,
+                                    shape = WavyShape(
+                                        period = 70.dp,
+                                        amplitude = 3.5.dp * percent.clamp(0.96f, 1f),
+                                        shift = shift.value,
+                                    ),
+                                )
+                                .fillMaxHeight()
+                                .fillMaxWidth(percent),
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(BuckwheatDesignSystem.Spacing.heroPadding),
+                    ) {
+                        // Header subtitle & Status pill
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.dashboard_hero_subtitle),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = textColor.copy(alpha = 0.7f),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+
+                            Surface(
+                                shape = CircleShape,
+                                color = if (isOverBudget) colorBad.copy(alpha = 0.2f) else colorGood.copy(alpha = 0.2f),
+                            ) {
+                                Text(
+                                    text = stringResource(if (isOverBudget) R.string.dashboard_over_budget else R.string.dashboard_on_track),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isOverBudget) colorBad else colorGood,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Large Safe Allowance Amount
+                        Text(
+                            text = numberFormat(
+                                context = context,
+                                value = allowance.coerceAtLeast(BigDecimal.ZERO),
+                                currency = uiState.currency,
+                                trimDecimalPlaces = false,
+                            ),
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor,
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Spent today vs daily target
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    R.string.dashboard_spent_today,
+                                    numberFormat(context, spent, uiState.currency, trimDecimalPlaces = true),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textColor.copy(alpha = 0.75f),
+                            )
+                            Text(
+                                text = stringResource(
+                                    R.string.dashboard_daily_target,
+                                    numberFormat(context, target, uiState.currency, trimDecimalPlaces = true),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textColor.copy(alpha = 0.75f),
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+                        HorizontalDivider(color = textColor.copy(alpha = 0.15f))
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Cycle Period Statistics Row
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable(onClick = onOpenWallet),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_calendar),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = textColor.copy(alpha = 0.8f),
+                                )
+                                Text(
+                                    text = stringResource(
+                                        R.string.dashboard_period_remaining,
+                                        numberFormat(context, uiState.periodRemainingPool, uiState.currency, trimDecimalPlaces = true),
+                                        numberFormat(context, uiState.periodTotalBudget, uiState.currency, trimDecimalPlaces = true),
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = textColor,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+
+                            // Rotated Days-Left Chip (styled after CountDaysChip in Wallet)
+                            Surface(
+                                shape = CircleShape,
+                                color = textColor,
+                                contentColor = harmonizedColor.container,
+                                modifier = Modifier
+                                    .rotate(4f)
+                                    .padding(vertical = 2.dp),
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.dashboard_period_days_left, uiState.periodDaysLeft),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -466,7 +561,7 @@ private fun ActionBanner(
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = BuckwheatDesignSystem.Shapes.cardItem,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -612,7 +707,7 @@ private fun UpcomingBillsSection(
 }
 
 /**
- * Individual card representation of an upcoming bill.
+ * Individual card representation of an upcoming bill with urgency-coded pill and icon avatar.
  */
 @Composable
 private fun UpcomingBillCard(
@@ -623,35 +718,62 @@ private fun UpcomingBillCard(
     val context = LocalContext.current
     val daysUntil = ChronoUnit.DAYS.between(LocalDate.now(), item.nextOccurrence)
 
+    val urgencyColor = when {
+        daysUntil <= 0 -> colorBad
+        daysUntil <= 2 -> colorNotGood
+        else -> MaterialTheme.colorScheme.primary
+    }
+
     Card(
         modifier = Modifier
-            .width(160.dp)
+            .width(170.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = BuckwheatDesignSystem.Shapes.cardItem,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Due badge
-            val dueText = when {
-                daysUntil <= 0 -> stringResource(R.string.due_today)
-                else -> pluralStringResource(R.plurals.due_in_days, daysUntil.toInt(), daysUntil.toInt())
-            }
-
-            Surface(
-                shape = CircleShape,
-                color = if (daysUntil <= 1) colorBad.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer,
+            // Due badge & avatar row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = dueText,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (daysUntil <= 1) colorBad else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                    maxLines = 1,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(urgencyColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_autorenew),
+                        contentDescription = null,
+                        tint = urgencyColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+
+                val dueText = when {
+                    daysUntil <= 0 -> stringResource(R.string.due_today)
+                    else -> pluralStringResource(R.plurals.due_in_days, daysUntil.toInt(), daysUntil.toInt())
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = urgencyColor.copy(alpha = 0.12f),
+                ) {
+                    Text(
+                        text = dueText,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = urgencyColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        maxLines = 1,
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -665,12 +787,12 @@ private fun UpcomingBillCard(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = numberFormat(context, item.amount, currency, trimDecimalPlaces = true),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
@@ -721,7 +843,7 @@ private fun RecentActivitySection(
         if (recentTransactions.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = BuckwheatDesignSystem.Shapes.cardItem,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
@@ -737,7 +859,7 @@ private fun RecentActivitySection(
         } else {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = BuckwheatDesignSystem.Shapes.cardHero,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
@@ -790,7 +912,7 @@ private fun RecentTransactionRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
                     .background(
                         if (isIncome) colorGood.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer
@@ -801,7 +923,7 @@ private fun RecentTransactionRow(
                     painter = painterResource(if (isIncome) R.drawable.ic_balance_wallet else R.drawable.ic_money),
                     contentDescription = null,
                     tint = if (isIncome) colorGood else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
@@ -839,14 +961,16 @@ private fun RecentTransactionRow(
 
 /**
  * Sticky action bar at the bottom allowing instant quick return to add expenses.
+ * Supports fluid downward swipe dismissal.
  */
 @Composable
 private fun QuickAddBottomBar(
     onQuickAdd: () -> Unit,
     bottomPadding: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 0.dp,
     ) {

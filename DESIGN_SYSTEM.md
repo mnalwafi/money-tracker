@@ -82,17 +82,42 @@ l:   16.dp  |  xl: 20.dp  |  xxl: 24.dp |  xxxl: 32.dp
 
 | Style Token | Font Weight | Target Usage |
 | :--- | :--- | :--- |
-| `typography.displayMedium` | **Bold** | Hero Safe Daily Spend Allowance |
-| `typography.headlineSmall` | **Bold** | Drawer / Sheet Titles |
+| `typography.displayMedium` | **Bold** | Hero Safe Daily Spend Allowance, Hero Commitment Numbers |
+| `BuckwheatDesignSystem.Typography.drawerTitle` (`typography.titleLarge`) | **Bold** | Centered Drawer / Sheet Titles (Universal across all drawers) |
+| `typography.headlineSmall` | **Bold** | Prominent Section Headers |
 | `typography.titleMedium` | **SemiBold** | Card Primary Headings, Big Numbers |
 | `typography.titleSmall` | **Bold** | List Item Headings, Section Labels |
 | `typography.bodyMedium` | **Medium / Normal** | Card body text, transaction descriptions |
 | `typography.bodySmall` | **Normal** | Secondary statistics, cycle progress |
 | `typography.labelSmall` | **Bold / Medium** | Due date badges, interval pill labels |
 
+### Universal Drawer Title Standard:
+- All drawers and sheets must use `BuckwheatDesignSystem.Typography.drawerTitle` (`titleLarge`, `FontWeight.Bold`).
+- Titles must be **centered** horizontally across the top of the drawer, accompanied by the standard pill drag handle above.
+- Left-aligned drawer titles or disparate font sizes are strictly disallowed to maintain visual coherence across Dashboard, Recurring, Wallet, Viewer History, and Settings.
+
 ---
 
-## 5. Input Controls & Auto-Formatting Standards
+## 5. "Cool Card" Architecture (Wallet Fidelity Standard)
+
+Cards across all drawers (specifically Dashboard and Recurring & Subscriptions) must match the visual depth, motion, and polish of the **Wallet Drawer**:
+
+### 1. Hero Cards (`cardHero` - 28.dp Corner Radius):
+- **Shape**: `BuckwheatDesignSystem.Shapes.cardHero = RoundedCornerShape(28.dp)`.
+- **Dynamic Color Harmonization**: Background or liquid fill dynamically blended between semantic health tokens (`colorBad`, `colorNotGood`, `colorGood`) using `combineColors(...)` based on health or cycle percentage.
+- **Continuous Animated Wave Fill**: Uses `WavyShape` driven by `rememberInfiniteTransition` to render smooth liquid wave motion.
+- **Bold Display Hierarchy**: Main metric formatted in `MaterialTheme.typography.displayMedium` with bold weighting.
+- **Rotated Badge Chip**: Key temporal or count indicators (e.g. days remaining, active subscriptions) housed in rotated pill badges (`-4.deg` to `-8.deg` rotation).
+
+### 2. Item Cards (`cardItem` - 22.dp Corner Radius):
+- **Shape**: `BuckwheatDesignSystem.Shapes.cardItem = RoundedCornerShape(22.dp)`.
+- **Circular Icon Avatars**: Category or type icons placed in circular containers (`CircleShape`) with subtle tonal containers (`secondaryContainer`, `primaryContainer`).
+- **Urgency-Coded Status Pills**: Badges use semantic urgency colors (overdue = `colorBad`, due soon = `colorNotGood`, normal = `primary`).
+- **Surface Elevation & Outline**: `surfaceContainer` background with a subtle `1.dp` border (`outlineVariant.copy(alpha = 0.35f)`).
+
+---
+
+## 6. Input Controls & Auto-Formatting Standards
 
 ### Currency Input Architecture:
 - Amount fields must accept clean string/decimal input and auto-format using `visualTransformationAsCurrency(context, currency, hintColor)` from `com.danilkinkin.buckwheat.util`.
@@ -107,14 +132,17 @@ l:   16.dp  |  xl: 20.dp  |  xxl: 24.dp |  xxxl: 32.dp
 
 ---
 
-## 6. Gesture & Snap Physics Engine
+## 7. Gesture & Snap Physics Engine
 
 Buckwheat's interactive model matches the **"Whole Budget Card"** standard:
 - **1:1 Touch Tracking**: During upward or downward drag gestures, the sheet or card tracks touch movement synchronously without hitch or delay.
-- **Velocity Threshold**: `125.dp/s` (`BuckwheatDesignSystem.Physics.velocityThreshold`).
+- **Effortless Dismissal Thresholds**:
+  - `BuckwheatDesignSystem.Physics.dismissThreshold = 40.dp`.
+  - `BuckwheatDesignSystem.Physics.dismissVelocityThreshold = 150f`.
+  - Downward drags passing 40.dp or with velocity >= 150f immediately trigger `sheetState.hide()`.
+- **Sticky Surface Drag Forwarding**: Bottom sticky action bars (such as the Dashboard quick add bar) must forward downward drag gestures to the sheet so pulling down anywhere near the bottom edge closes the sheet smoothly.
 - **Snapping Specification**:
-  - `SpringSpec(dampingRatio = 0.85f, stiffness = 380f)` (`BuckwheatDesignSystem.Physics`).
+  - `SpringSpec(dampingRatio = 0.85f, stiffness = 380f)` (`BuckwheatDesignSystem.Physics.springSpec`).
   - Releases with an upward fling decisively snap to `Expanded`.
   - Releases with a downward fling decisively snap to `Hidden` / `Collapsed`.
-  - Releases with low velocity snap to the closest anchor based on a 50% displacement threshold.
 - **Touch Slop Disambiguation**: Keypad taps are disambiguated with `touchSlop * 1.75f` directional checking so rapid digit entry never triggers unintentional sheet drags.
