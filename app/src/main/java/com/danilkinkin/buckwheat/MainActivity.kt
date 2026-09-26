@@ -24,6 +24,8 @@ import androidx.lifecycle.lifecycleScope
 import com.danilkinkin.buckwheat.base.balloon.BalloonProvider
 import com.danilkinkin.buckwheat.data.dao.StorageDao
 import com.danilkinkin.buckwheat.di.migrateToDataStore
+import android.content.Intent
+import com.danilkinkin.buckwheat.service.NotificationListenerUtils
 import com.danilkinkin.buckwheat.home.MainScreen
 import dagger.hilt.android.AndroidEntryPoint
 import com.danilkinkin.buckwheat.ui.BuckwheatTheme
@@ -71,40 +73,42 @@ class MainActivity : ComponentActivity() {
             val localContext = LocalContext.current
             val activityResultRegistryOwner = LocalActivityResultRegistryOwner.current
 
-            LaunchedEffect(Unit) {
-                syncTheme(localContext)
-                syncOverrideLocale(localContext)
-                migrateToDataStore(context, storageDao)
+                LaunchedEffect(Unit) {
+                    syncTheme(localContext)
+                    syncOverrideLocale(localContext)
+                    migrateToDataStore(context, storageDao)
+                    NotificationListenerUtils.ensureListenerConnected(localContext)
 
-                // App ready for work
-                isReady.value = true
-            }
+                    // App ready for work
+                    isReady.value = true
+                }
 
-            val widthSizeClass = calculateWindowSizeClass(this).widthSizeClass
+                val widthSizeClass = calculateWindowSizeClass(this).widthSizeClass
 
-            if (widthSizeClass == WindowWidthSizeClass.Compact) {
-                locScreenOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
-            }
+                if (widthSizeClass == WindowWidthSizeClass.Compact) {
+                    locScreenOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                }
 
-            val windowInsets = WindowInsets
-                .systemBars
-                .asPaddingValues()
+                val windowInsets = WindowInsets
+                    .systemBars
+                    .asPaddingValues()
 
-            CatchAndSendCrashReport()
+                CatchAndSendCrashReport()
 
-            if (isReady.value) {
-                BuckwheatTheme {
-                    OverrideLocalize {
-                        BalloonProvider {
-                            CompositionLocalProvider(
-                                LocalWindowSize provides widthSizeClass,
-                                LocalWindowInsets provides windowInsets,
-                            ) {
-                                MainScreen(activityResultRegistryOwner)
+                if (isReady.value) {
+                    BuckwheatTheme {
+                        OverrideLocalize {
+                            BalloonProvider {
+                                CompositionLocalProvider(
+                                    LocalWindowSize provides widthSizeClass,
+                                    LocalWindowInsets provides windowInsets,
+                                ) {
+                                    MainScreen(activityResultRegistryOwner)
 
-                                LaunchedEffect(Unit) {
-                                    // App rendered and splash screen can be hidden
-                                    isDone.value = true
+                                    LaunchedEffect(Unit) {
+                                        // App rendered and splash screen can be hidden
+                                        isDone.value = true
+                                    }
                                 }
                             }
                         }
@@ -112,5 +116,14 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+    override fun onResume() {
+        super.onResume()
+        NotificationListenerUtils.ensureListenerConnected(this)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 }

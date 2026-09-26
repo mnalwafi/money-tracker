@@ -1,11 +1,13 @@
 package com.danilkinkin.buckwheat.service
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.danilkinkin.buckwheat.MainActivity
@@ -20,6 +22,7 @@ class ExpenseNotificationHelper @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     companion object {
+        private const val TAG = "ExpenseNotifHelper"
         const val CHANNEL_ID = "channel_expense_capture"
         const val EXTRA_PENDING_EXPENSE_ID = "extra_pending_expense_id"
         const val EXTRA_TYPE = "extra_type"
@@ -41,6 +44,9 @@ class ExpenseNotificationHelper @Inject constructor(
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 250, 250)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setShowBadge(true)
             }
             val notificationManager: NotificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -49,7 +55,8 @@ class ExpenseNotificationHelper @Inject constructor(
     }
 
     fun showExpenseNotification(expense: ParsedExpense) {
-        val notificationId = expense.id.hashCode()
+        // Compute a guaranteed positive notification ID
+        val notificationId = (Math.abs(expense.id.hashCode()) % 100000) + 10000
         val isIncome = expense.type == com.danilkinkin.buckwheat.data.entities.TransactionCaptureType.INCOME
 
         // 1. Content Intent (Tapping notification opens MainActivity to review/edit)
@@ -119,24 +126,39 @@ class ExpenseNotificationHelper @Inject constructor(
             .setSmallIcon(R.drawable.ic_money)
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setShowWhen(true)
+            .setWhen(expense.date.time)
             .setAutoCancel(true)
+            .setOngoing(false)
             .setContentIntent(contentPendingIntent)
             .addAction(
-                R.drawable.ic_edit,
+                R.drawable.ic_apply,
                 actionLabel,
                 logPendingIntent
             )
             .addAction(
-                R.drawable.ic_delete_forever,
+                R.drawable.ic_close,
                 context.getString(R.string.dismiss_action),
                 dismissPendingIntent
             )
 
+        val areEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+        if (!areEnabled) {
+            Log.w(TAG, "NotificationManagerCompat.areNotificationsEnabled is FALSE! Android will suppress notifications until enabled in settings.")
+        }
+
         try {
             NotificationManagerCompat.from(context).notify(notificationId, builder.build())
+            Log.d(TAG, "Successfully posted system notification id=$notificationId for ${expense.merchant}")
         } catch (e: SecurityException) {
-            // Notification permission might be denied on Android 13+
+            Log.e(TAG, "SecurityException: POST_NOTIFICATIONS runtime permission is missing", e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to post notification", e)
         }
     }
 

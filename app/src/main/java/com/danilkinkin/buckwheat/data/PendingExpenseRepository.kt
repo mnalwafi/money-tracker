@@ -1,10 +1,19 @@
 package com.danilkinkin.buckwheat.data
 
+import android.content.Context
+import android.util.Log
 import com.danilkinkin.buckwheat.data.entities.ParsedExpense
+import com.danilkinkin.buckwheat.data.entities.TransactionCaptureType
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import org.json.JSONArray
+import org.json.JSONObject
+import java.math.BigDecimal
+import java.util.Date
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,9 +30,18 @@ sealed class PendingExpenseAddResult {
 }
 
 @Singleton
-class PendingExpenseRepository @Inject constructor() {
+class PendingExpenseRepository private constructor(
+    private val context: Context?,
+    @Suppress("UNUSED_PARAMETER") marker: Any?
+) {
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(context, null)
+
+    // For unit tests without Android Context
+    constructor() : this(null, null)
 
     companion object {
+        private const val TAG = "PendingExpenseRepo"
         const val DEDUPLICATION_WINDOW_MS = 30_000L // 30 seconds
 
         // Known payment processors / gateways that bridge banks with merchants
@@ -75,8 +93,63 @@ class PendingExpenseRepository @Inject constructor() {
         )
     }
 
-    private val _pendingExpenses = MutableStateFlow<List<ParsedExpense>>(emptyList())
+    private val _pendingExpenses = MutableStateFlow<List<ParsedExpense>>(loadFromDisk())
     val pendingExpenses: StateFlow<List<ParsedExpense>> = _pendingExpenses.asStateFlow()
+
+    private fun loadFromDisk(): List<ParsedExpense> {
+        val ctx = context ?: return emptyList()
+        val prefs = ctx.getSharedPreferences("buckwheat_pending_expenses", Context.MODE_PRIVATE)
+        val json = prefs.getString("pending_list", null) ?: return emptyList()
+        val list = mutableListOf<ParsedExpense>()
+        try {
+            val arr = JSONArray(json)
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                list.add(
+                    ParsedExpense(
+                        id = obj.optString("id", UUID.randomUUID().toString()),
+                        type = TransactionCaptureType.valueOf(obj.optString("type", TransactionCaptureType.EXPENSE.name)),
+                        amount = BigDecimal(obj.optString("amount", "0")),
+                        merchant = obj.optString("merchant", ""),
+                        date = Date(obj.optLong("date", System.currentTimeMillis())),
+                        packageName = obj.optString("packageName", ""),
+                        rawText = obj.optString("rawText", ""),
+                        currencySymbol = obj.optString("currencySymbol").takeIf { it.isNotEmpty() },
+                        confidence = obj.optDouble("confidence", 1.0).toFloat(),
+                        source = obj.optString("source", "hybrid"),
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load pending expenses from disk", e)
+        }
+        return list
+    }
+
+    private fun saveToDisk(list: List<ParsedExpense>) {
+        val ctx = context ?: return
+        val prefs = ctx.getSharedPreferences("buckwheat_pending_expenses", Context.MODE_PRIVATE)
+        try {
+            val arr = JSONArray()
+            for (item in list) {
+                val obj = JSONObject()
+                obj.put("id", item.id)
+                obj.put("type", item.type.name)
+                obj.put("amount", item.amount.toPlainString())
+                obj.put("merchant", item.merchant)
+                obj.put("date", item.date.time)
+                obj.put("packageName", item.packageName)
+                obj.put("rawText", item.rawText)
+                obj.put("currencySymbol", item.currencySymbol ?: "")
+                obj.put("confidence", item.confidence.toDouble())
+                obj.put("source", item.source)
+                arr.put(obj)
+            }
+            prefs.edit().putString("pending_list", arr.toString()).apply()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save pending expenses to disk", e)
+        }
+    }
 
     fun addPendingExpense(expense: ParsedExpense): PendingExpenseAddResult {
         var result: PendingExpenseAddResult = PendingExpenseAddResult.Added(expense)
@@ -119,13 +192,16 @@ class PendingExpenseRepository @Inject constructor() {
                         result = PendingExpenseAddResult.Merged(merged)
                         val updatedList = current.toMutableList()
                         updatedList[i] = merged
+                        saveToDisk(updatedList)
                         return@update updatedList
                     }
                 }
             }
 
             result = PendingExpenseAddResult.Added(expense)
-            listOf(expense) + current
+            val updated = listOf(expense) + current
+            saveToDisk(updated)
+            updated
         }
 
         return result
@@ -153,7 +229,9 @@ class PendingExpenseRepository @Inject constructor() {
 
     fun removePendingExpense(id: String) {
         _pendingExpenses.update { current ->
-            current.filterNot { it.id == id }
+            val updated = current.filterNot { it.id == id }
+            saveToDisk(updated)
+            updated
         }
     }
 
@@ -163,5 +241,6 @@ class PendingExpenseRepository @Inject constructor() {
 
     fun clearAll() {
         _pendingExpenses.value = emptyList()
+        saveToDisk(emptyList())
     }
 }

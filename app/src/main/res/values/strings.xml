@@ -149,6 +149,8 @@
   <string name="notification_permission_needed_dialog_title">Notification Access Required</string>
   <string name="notification_permission_needed_dialog_desc">To automatically detect payments, Buckwheat needs permission to read notifications. Please enable Notification Access for Buckwheat in your device system settings.</string>
   <string name="notification_permission_open_settings">Open Settings</string>
+  <string name="notification_permission_post_title">Show Transaction Notifications</string>
+  <string name="notification_permission_post_desc">Buckwheat needs permission to post notifications so you receive immediate prompts to confirm or categorize expenses when the app is closed.</string>
 
   <string name="notification_channel_expense_name">Expense Alerts</string>
   <string name="notification_channel_expense_desc">Prompts to confirm and categorize detected payment expenses</string>

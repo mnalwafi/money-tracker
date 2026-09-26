@@ -1,5 +1,9 @@
 package com.danilkinkin.buckwheat.settings
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -9,12 +13,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -50,7 +54,23 @@ fun NotificationCaptureSwitcher(
 ) {
     val context = LocalContext.current
     val isEnabled by viewModel.isEnabled.collectAsState()
-    var showPermissionDialog by remember { mutableStateOf(false) }
+    var showListenerPermissionDialog by remember { mutableStateOf(false) }
+    var showPostNotificationDialog by remember { mutableStateOf(false) }
+
+    val postNotificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            if (!NotificationListenerUtils.isNotificationListenerEnabled(context)) {
+                showListenerPermissionDialog = true
+            } else {
+                viewModel.setEnabled(true)
+                NotificationListenerUtils.ensureListenerConnected(context)
+            }
+        } else {
+            showPostNotificationDialog = true
+        }
+    }
 
     TextRow(
         modifier = modifier,
@@ -62,11 +82,24 @@ fun NotificationCaptureSwitcher(
                 checked = isEnabled,
                 onCheckedChange = { checked ->
                     if (checked) {
-                        if (!NotificationListenerUtils.isNotificationListenerEnabled(context)) {
-                            showPermissionDialog = true
-                        } else {
-                            viewModel.setEnabled(true)
+                        // 1. First ensure system notifications can be posted (especially on Android 13+)
+                        if (!NotificationListenerUtils.isPostNotificationPermissionGranted(context)) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                postNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                showPostNotificationDialog = true
+                            }
+                            return@Switch
                         }
+
+                        // 2. Ensure notification listener access is granted
+                        if (!NotificationListenerUtils.isNotificationListenerEnabled(context)) {
+                            showListenerPermissionDialog = true
+                            return@Switch
+                        }
+
+                        viewModel.setEnabled(true)
+                        NotificationListenerUtils.ensureListenerConnected(context)
                     } else {
                         viewModel.setEnabled(false)
                     }
@@ -75,9 +108,10 @@ fun NotificationCaptureSwitcher(
         }
     )
 
-    if (showPermissionDialog) {
+    // Dialog for Notification Listener access (reading incoming bank notifications)
+    if (showListenerPermissionDialog) {
         AlertDialog(
-            onDismissRequest = { showPermissionDialog = false },
+            onDismissRequest = { showListenerPermissionDialog = false },
             title = {
                 Text(text = stringResource(R.string.notification_permission_needed_dialog_title))
             },
@@ -87,7 +121,7 @@ fun NotificationCaptureSwitcher(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showPermissionDialog = false
+                        showListenerPermissionDialog = false
                         viewModel.setEnabled(true)
                         NotificationListenerUtils.openNotificationListenerSettings(context)
                     }
@@ -96,7 +130,35 @@ fun NotificationCaptureSwitcher(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPermissionDialog = false }) {
+                TextButton(onClick = { showListenerPermissionDialog = false }) {
+                    Text(text = stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Dialog for Post Notifications access (showing prompt when app is closed)
+    if (showPostNotificationDialog) {
+        AlertDialog(
+            onDismissRequest = { showPostNotificationDialog = false },
+            title = {
+                Text(text = stringResource(R.string.notification_permission_post_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.notification_permission_post_desc))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPostNotificationDialog = false
+                        NotificationListenerUtils.openAppNotificationSettings(context)
+                    }
+                ) {
+                    Text(text = stringResource(R.string.notification_permission_open_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPostNotificationDialog = false }) {
                     Text(text = stringResource(R.string.cancel))
                 }
             }

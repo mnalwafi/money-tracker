@@ -26,6 +26,7 @@ class Application : Application(), Configuration.Provider {
         super.onCreate()
 
         RecurringTransactionScheduler.scheduleDailyWorker(this)
+        com.danilkinkin.buckwheat.service.NotificationListenerUtils.ensureListenerConnected(this)
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {

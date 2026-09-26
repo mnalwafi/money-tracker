@@ -1,6 +1,8 @@
 package com.danilkinkin.buckwheat.service
 
 import android.app.Notification
+import android.content.ComponentName
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -40,6 +42,23 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        Log.d(TAG, "NotificationListener connected and actively listening for transactions")
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        Log.d(TAG, "NotificationListener disconnected, requesting rebind to maintain background capture")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                requestRebind(ComponentName(this, ExpenseNotificationListenerService::class.java))
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to request rebind", e)
+            }
+        }
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
         if (sbn == null) return
@@ -60,9 +79,10 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
 
         serviceScope.launch {
             try {
-                // Verify feature is enabled in user settings
-                val isEnabled = settingsRepository.isAutoExpenseCaptureEnabled().first()
-                if (!isEnabled) {
+                // Verify feature is enabled in user settings or notification access is granted
+                val isSettingsEnabled = settingsRepository.isAutoExpenseCaptureEnabled().first()
+                val isListenerPermitted = NotificationListenerUtils.isNotificationListenerEnabled(this@ExpenseNotificationListenerService)
+                if (!isSettingsEnabled && !isListenerPermitted) {
                     return@launch
                 }
 
