@@ -34,8 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.LocalWindowInsets
 import com.danilkinkin.buckwheat.R
-import com.danilkinkin.buckwheat.base.BigIconButton
-import com.danilkinkin.buckwheat.base.LocalBottomSheetScrollState
 import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
 import com.danilkinkin.buckwheat.data.entities.Transaction
 import com.danilkinkin.buckwheat.data.entities.TransactionType
@@ -63,118 +61,135 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-    val localBottomSheetScrollState = LocalBottomSheetScrollState.current
-
     val navigationBarHeight = androidx.compose.ui.unit.max(
         LocalWindowInsets.current.calculateBottomPadding(),
         16.dp,
     )
 
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = localBottomSheetScrollState.topPadding),
-        color = MaterialTheme.colorScheme.surface,
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
+        // Constrain sheet height to 88% of screen height to leave clear top breathing room and visible backdrop
+        val maxSheetHeight = maxHeight * 0.88f
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(maxSheetHeight),
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+            color = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp),
+            tonalElevation = 1.dp,
         ) {
-            // Dashboard Top Bar
-            DashboardHeader(
-                onClose = onClose,
-                onOpenWallet = onOpenWallet,
-            )
-
-            // Scrollable Content
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize(),
             ) {
-                // Hero Card: Safe Allowance Today & Period Progress
-                HeroAllowanceCard(
-                    uiState = uiState,
-                    onOpenWallet = onOpenWallet,
-                )
+                // Centered Material You Drag Handle Pill
+                DashboardDragHandle()
 
-                // Action Banner: Auto-detected transactions pending review
-                ActionBanner(
-                    pendingCount = uiState.pendingCapturedCount,
-                    onReview = onReviewPending,
-                )
+                // Clean Header Title & Date (No close or wallet icons)
+                DashboardHeader()
 
-                // Upcoming Bills Row (Next 7 Days)
-                UpcomingBillsSection(
-                    upcomingBills = uiState.upcomingRecurring,
-                    currency = uiState.currency,
-                    onManageRecurring = onOpenRecurring,
-                )
+                // Scrollable Content
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    // Hero Card: Safe Allowance Today & Period Progress
+                    HeroAllowanceCard(
+                        uiState = uiState,
+                        onOpenWallet = onOpenWallet,
+                    )
 
-                // Recent Activity Section (Latest 3-5 entries)
-                RecentActivitySection(
-                    recentTransactions = uiState.recentTransactions,
-                    currency = uiState.currency,
-                    onEditTransaction = onEditTransaction,
-                    onViewHistory = onOpenHistory,
-                )
+                    // Action Banner: Auto-detected transactions pending review
+                    ActionBanner(
+                        pendingCount = uiState.pendingCapturedCount,
+                        onReview = onReviewPending,
+                    )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                    // Upcoming Bills Row (Next 7 Days)
+                    UpcomingBillsSection(
+                        upcomingBills = uiState.upcomingRecurring,
+                        currency = uiState.currency,
+                        onManageRecurring = onOpenRecurring,
+                    )
+
+                    // Recent Activity Section (Latest 3-5 entries)
+                    RecentActivitySection(
+                        recentTransactions = uiState.recentTransactions,
+                        currency = uiState.currency,
+                        onEditTransaction = onEditTransaction,
+                        onViewHistory = onOpenHistory,
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Quick-Add Sticky Action Bar
+                QuickAddBottomBar(
+                    onQuickAdd = onQuickAdd,
+                    bottomPadding = navigationBarHeight,
+                )
             }
-
-            // Quick-Add Sticky Action Bar
-            QuickAddBottomBar(
-                onQuickAdd = onQuickAdd,
-                bottomPadding = navigationBarHeight,
-            )
         }
     }
 }
 
+/**
+ * Centered Material You drag handle pill providing intuitive swipe affordance.
+ */
+@Composable
+fun DashboardDragHandle(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)),
+        )
+    }
+}
+
+/**
+ * Minimalist dashboard header showing title and current date without redundant close/wallet action buttons.
+ */
 @Composable
 private fun DashboardHeader(
-    onClose: () -> Unit,
-    onOpenWallet: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = Modifier
+    Column(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(horizontal = 20.dp, vertical = 6.dp),
     ) {
-        Column {
-            Text(
-                text = stringResource(R.string.dashboard_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = prettyDate(java.util.Date(), showTime = false, human = true),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BigIconButton(
-                icon = painterResource(R.drawable.ic_balance_wallet),
-                contentDescription = stringResource(R.string.wallet_title),
-                onClick = onOpenWallet,
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            BigIconButton(
-                icon = painterResource(R.drawable.ic_close),
-                contentDescription = stringResource(R.string.close),
-                onClick = onClose,
-            )
-        }
+        Text(
+            text = stringResource(R.string.dashboard_title),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = prettyDate(java.util.Date(), showTime = false, human = true),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
+/**
+ * Modernized Hero Card presenting today's safe allowance with prominent typography,
+ * an integrated spend indicator, and cycle progress.
+ */
 @Composable
 private fun HeroAllowanceCard(
     uiState: DashboardUiState,
@@ -184,7 +199,7 @@ private fun HeroAllowanceCard(
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         ),
@@ -228,11 +243,11 @@ private fun HeroAllowanceCard(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Button(
                     onClick = onOpenWallet,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) {
                     Text(text = stringResource(R.string.dashboard_set_budget))
                 }
@@ -280,9 +295,9 @@ private fun HeroAllowanceCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Primary Allowance Amount
+                // Primary Safe Allowance Amount
                 Text(
                     text = numberFormat(
                         context = context,
@@ -290,16 +305,16 @@ private fun HeroAllowanceCard(
                         currency = uiState.currency,
                         trimDecimalPlaces = false,
                     ),
-                    style = MaterialTheme.typography.displaySmall,
+                    style = MaterialTheme.typography.displayMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (isOverBudget) colorBad else MaterialTheme.colorScheme.onSurface,
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Daily Spend Progress Bar
+                // Integrated Linear Spend Indicator
                 LinearProgressIndicator(
-                    progress = animatedProgress,
+                    progress = { animatedProgress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
@@ -334,13 +349,14 @@ private fun HeroAllowanceCard(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Cycle Period Statistics Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = onOpenWallet),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -379,6 +395,9 @@ private fun HeroAllowanceCard(
     }
 }
 
+/**
+ * Action Banner alerting users of newly captured transactions pending review.
+ */
 @Composable
 private fun ActionBanner(
     pendingCount: Int,
@@ -391,16 +410,16 @@ private fun ActionBanner(
     ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(14.dp),
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -413,7 +432,7 @@ private fun ActionBanner(
                         painter = painterResource(R.drawable.ic_money),
                         contentDescription = null,
                         modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                     Column {
                         Text(
@@ -428,7 +447,7 @@ private fun ActionBanner(
                         Text(
                             text = stringResource(R.string.dashboard_pending_banner_desc),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -437,10 +456,10 @@ private fun ActionBanner(
 
                 Button(
                     onClick = onReview,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.tertiary,
-                        contentColor = MaterialTheme.colorScheme.onTertiary,
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
                     ),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                 ) {
@@ -455,6 +474,9 @@ private fun ActionBanner(
     }
 }
 
+/**
+ * Section displaying upcoming recurring transactions and subscriptions due in the next 7 days.
+ */
 @Composable
 private fun UpcomingBillsSection(
     upcomingBills: List<RecurringTransaction>,
@@ -489,7 +511,7 @@ private fun UpcomingBillsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onManageRecurring),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
             ) {
                 Row(
@@ -529,6 +551,9 @@ private fun UpcomingBillsSection(
     }
 }
 
+/**
+ * Individual card representation of an upcoming bill.
+ */
 @Composable
 private fun UpcomingBillCard(
     item: RecurringTransaction,
@@ -540,14 +565,14 @@ private fun UpcomingBillCard(
 
     Card(
         modifier = Modifier
-            .width(155.dp)
+            .width(160.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         ),
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             // Due badge
             val dueText = when {
                 daysUntil <= 0 -> stringResource(R.string.due_today)
@@ -568,7 +593,7 @@ private fun UpcomingBillCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = item.name,
@@ -598,6 +623,9 @@ private fun UpcomingBillCard(
     }
 }
 
+/**
+ * Section presenting latest transactions for immediate review.
+ */
 @Composable
 private fun RecentActivitySection(
     recentTransactions: List<Transaction>,
@@ -631,7 +659,7 @@ private fun RecentActivitySection(
         if (recentTransactions.isEmpty()) {
             OutlinedCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.outlinedCardColors(containerColor = Color.Transparent),
             ) {
                 Text(
@@ -644,7 +672,7 @@ private fun RecentActivitySection(
         } else {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                 ),
@@ -659,7 +687,7 @@ private fun RecentActivitySection(
                         if (index < recentTransactions.size - 1) {
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
                             )
                         }
                     }
@@ -669,6 +697,9 @@ private fun RecentActivitySection(
     }
 }
 
+/**
+ * Individual row displaying transaction details.
+ */
 @Composable
 private fun RecentTransactionRow(
     transaction: Transaction,
@@ -740,6 +771,9 @@ private fun RecentTransactionRow(
     }
 }
 
+/**
+ * Sticky action bar at the bottom allowing instant quick return to add expenses.
+ */
 @Composable
 private fun QuickAddBottomBar(
     onQuickAdd: () -> Unit,
@@ -747,8 +781,8 @@ private fun QuickAddBottomBar(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp,
+        color = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp),
+        tonalElevation = 2.dp,
     ) {
         Box(
             modifier = Modifier

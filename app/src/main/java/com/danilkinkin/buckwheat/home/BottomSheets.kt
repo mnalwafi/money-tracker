@@ -130,6 +130,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = DASHBOARD_SHEET,
+        showDragHandle = false,
     ) { state ->
         val editorViewModel: EditorViewModel = hiltViewModel()
         DashboardScreen(

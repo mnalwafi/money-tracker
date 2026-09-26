@@ -52,6 +52,7 @@ fun BottomSheetWrapper(
     name: String,
     appViewModel: AppViewModel = viewModel(),
     cancelable: Boolean = true,
+    showDragHandle: Boolean = true,
     state: ModalBottomSheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden),
     content: @Composable (state: ModalBottomSheetState) -> Unit
 ) {
@@ -157,7 +158,7 @@ fun BottomSheetWrapper(
                 }
             }
 
-            if (cancelable) {
+            if (cancelable && showDragHandle) {
                 Box(
                     Modifier
                         .padding(8.dp)

@@ -31,6 +31,11 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
@@ -38,14 +43,21 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import com.danilkinkin.buckwheat.dashboard.DASHBOARD_SHEET
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -338,6 +350,19 @@ fun MainScreen(
             )
         }
 
+        if (windowSizeClass == WindowWidthSizeClass.Compact) {
+            val navBottomPadding = windowInsets.calculateBottomPadding()
+            BottomDashboardDragAffordance(
+                onOpenDashboard = {
+                    appViewModel.openSheet(PathState(DASHBOARD_SHEET))
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(bottom = (navBottomPadding - 12.dp).coerceAtLeast(2.dp))
+            )
+        }
+
         BottomSheets(activityResultRegistryOwner)
 
         if (windowSizeClass == WindowWidthSizeClass.Compact) {
@@ -372,3 +397,60 @@ fun StatusBarStub() {
             .background(colorEditor.copy(alpha = 0.9F))
     )
 }
+
+/**
+ * Bottom Drag / Swipe affordance pill allowing users to swipe up or tap from the bottom
+ * of the screen to expand the dashboard sheet.
+ */
+@Composable
+fun BottomDashboardDragAffordance(
+    onOpenDashboard: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptic = LocalHapticFeedback.current
+    var totalDragY by remember { mutableFloatStateOf(0f) }
+
+    Box(
+        modifier = modifier
+            .height(32.dp)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { totalDragY = 0f },
+                    onDragEnd = {
+                        if (totalDragY < -18f) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenDashboard()
+                        }
+                        totalDragY = 0f
+                    },
+                    onDragCancel = { totalDragY = 0f },
+                    onVerticalDrag = { change, dragAmount ->
+                        totalDragY += dragAmount
+                        if (totalDragY < -24f) {
+                            change.consume()
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onOpenDashboard()
+                            totalDragY = 0f
+                        }
+                    }
+                )
+            }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onOpenDashboard
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(4.dp)
+                .clip(CircleShape)
+                .background(
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                )
+        )
+    }
+}
+
