@@ -18,17 +18,17 @@ class DeterministicAmountExtractor @Inject constructor() {
     companion object {
         // Supported currencies and codes
         private const val CURRENCY_SYMBOLS = """[$€£¥₹₩₺₽฿₫]"""
-        private const val CURRENCY_CODES = """(?:Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)"""
+        private const val CURRENCY_CODES = """\b(?:Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)\b"""
         private const val CURRENCY_REGEX = """(?i)(?:$CURRENCY_SYMBOLS|$CURRENCY_CODES)"""
 
         // Matches: $1,250.00, Rp 25.000, EUR 45.50
         private val PREFIX_AMOUNT_PATTERN = Pattern.compile(
-            """($CURRENCY_REGEX)\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,3})?)"""
+            """($CURRENCY_REGEX)\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)"""
         )
 
         // Matches: 1,250.00 USD, 25.000 IDR, 45.50 €
         private val SUFFIX_AMOUNT_PATTERN = Pattern.compile(
-            """([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,3})?)\s*($CURRENCY_REGEX)"""
+            """([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)\s*($CURRENCY_REGEX)"""
         )
 
         // Matches shorthand notations: 200k, 200rb, 200 ribu, 1.5jt, 1.5 juta, 1.5m
@@ -43,15 +43,15 @@ class DeterministicAmountExtractor @Inject constructor() {
 
         // Expense merchant patterns
         private val EXPENSE_MERCHANT_PATTERNS = listOf(
-            Pattern.compile("""(?i)(?:payment\s+for\s+(?:subscribtion|subscription)\s+to|payment\s+for|subscription\s+to|subscribtion\s+to|paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke|bayar\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar)\b|\.|\,|$))"""),
-            Pattern.compile("""(?i)(?:at|to|in|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar)\b|\.|\,|$))""")
+            Pattern.compile("""(?i)(?:payment\s+for\s+(?:subscribtion|subscription)\s+to|payment\s+for|subscription\s+to|subscribtion\s+to|paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke|bayar\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""),
+            Pattern.compile("""(?i)(?:at|to|in|for|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)""")
         )
 
         // Income source patterns
         private val INCOME_SOURCE_PATTERNS = listOf(
-            Pattern.compile("""(?i)(?:received\s+from|transfer\s+dari|dana\s+masuk\s+dari|uang\s+masuk\s+dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:on|via|using|with|date|ref|amount|sebesar)\b|\.|\,|$))"""),
-            Pattern.compile("""(?i)(?:from|dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:on|via|using|with|date|ref|amount|sebesar)\b|\.|\,|$))"""),
-            Pattern.compile("""(?i)(?:top[-\s]?up\s+via)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:on|date|ref|amount|sebesar)\b|\.|\,|$))""")
+            Pattern.compile("""(?i)(?:received\s+from|transfer\s+dari|dana\s+masuk\s+dari|uang\s+masuk\s+dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:on|via|using|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""),
+            Pattern.compile("""(?i)(?:from|dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:on|via|using|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""),
+            Pattern.compile("""(?i)(?:top[-\s]?up\s+via)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:on|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)""")
         )
 
         // Generic titles that should not be used as merchants

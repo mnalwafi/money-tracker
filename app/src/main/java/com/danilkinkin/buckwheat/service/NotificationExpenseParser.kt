@@ -104,24 +104,24 @@ class NotificationExpenseParser @Inject constructor() {
 
         // Currency symbols and codes regex
         private const val CURRENCY_REGEX =
-            """(?i)(?:[$€£¥₹]|Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY)"""
+            """(?i)(?:[$€£¥₹₩₺₽฿₫]|\b(?:Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)\b)"""
 
         // Amount pattern with currency before or after
         private val AMOUNT_PATTERN_PREFIX = Pattern.compile(
-            """($CURRENCY_REGEX)\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)"""
+            """($CURRENCY_REGEX)\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)"""
         )
 
         private val AMOUNT_PATTERN_SUFFIX = Pattern.compile(
-            """([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)\s*($CURRENCY_REGEX)"""
+            """([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]+)?)\s*($CURRENCY_REGEX)"""
         )
 
         // Merchant extraction patterns
         private val MERCHANT_AT_TO_PATTERN = Pattern.compile(
-            """(?i)(?:at|to|in|for|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|via|using|from|with|date|ref|\.|\,|$))"""
+            """(?i)(?:at|to|in|for|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""
         )
 
         private val MERCHANT_PAID_TO_PATTERN = Pattern.compile(
-            """(?i)(?:paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|via|using|from|with|date|ref|\.|\,|$))"""
+            """(?i)(?:paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""
         )
 
         // Generic notification titles to ignore when fallbacking to title
