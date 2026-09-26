@@ -253,6 +253,98 @@ assert.strictEqual(successClass.type, 'EXPENSE');
 assert.strictEqual(parseShorthand(successPayment), "200000.00");
 console.log(`✓ Successful payment with shorthand parsed: [${successClass.type}] -> 200000.00 IDR`);
 
+// Test 6: Cross-App Payment Gateway Correlation (e.g. BRImo -> Google Pay -> Google One)
+const GATEWAY_DEFINITIONS = [
+    {
+        id: "google",
+        packagePatterns: ["com.google.android.apps.walletnfcrel", "com.android.vending", "com.google.android.apps.nbu.paisa"],
+        keywords: ["google", "google pay", "google play", "gpay", "google one"]
+    },
+    {
+        id: "paypal",
+        packagePatterns: ["com.paypal.android.p2pmobile"],
+        keywords: ["paypal"]
+    },
+    {
+        id: "gopay",
+        packagePatterns: ["com.gojek.app"],
+        keywords: ["gopay", "gojek"]
+    }
+];
+
+function touchesGateway(expense, gateway) {
+    const pkg = (expense.packageName || "").toLowerCase();
+    const merchant = (expense.merchant || "").toLowerCase();
+    const raw = (expense.rawText || "").toLowerCase();
+    return gateway.packagePatterns.some(p => pkg.includes(p.toLowerCase())) ||
+           gateway.keywords.some(k => merchant.includes(k) || raw.includes(k));
+}
+
+function resolveDeduplication(existingList, incoming) {
+    const WINDOW_MS = 30000;
+    for (let i = 0; i < existingList.length; i++) {
+        const existing = existingList[i];
+        const sameAmount = existing.amount === incoming.amount;
+        const timeDiff = Math.abs(incoming.timestamp - existing.timestamp);
+
+        if (sameAmount && timeDiff <= WINDOW_MS) {
+            if (existing.merchant.toLowerCase() === incoming.merchant.toLowerCase()) {
+                return { action: 'IGNORE_DUPLICATE', index: i };
+            }
+            const gateway = GATEWAY_DEFINITIONS.find(g => touchesGateway(existing, g) && touchesGateway(incoming, g));
+            if (gateway) {
+                const isExistingGatewayApp = gateway.packagePatterns.some(p => existing.packageName.includes(p));
+                const isIncomingGatewayApp = gateway.packagePatterns.some(p => incoming.packageName.includes(p));
+                const preferredMerchant = (!isExistingGatewayApp && isIncomingGatewayApp) ? incoming.merchant : existing.merchant;
+                return {
+                    action: 'MERGE',
+                    index: i,
+                    mergedExpense: {
+                        ...existing,
+                        merchant: preferredMerchant,
+                        rawText: `${existing.rawText} | ${incoming.rawText}`
+                    }
+                };
+            }
+        }
+    }
+    return { action: 'ADD_NEW' };
+}
+
+// Scenario 1: BRImo arrives first, Google Play arrives 3s later
+const brimoExpense = {
+    amount: "87580.00",
+    merchant: "Google Pay",
+    packageName: "id.co.bri.brimo",
+    rawText: "Transfer ke GOOGLE PAY sebesar Rp 87.580 berhasil",
+    timestamp: 10000
+};
+const gplayExpense = {
+    amount: "87580.00",
+    merchant: "Google One",
+    packageName: "com.android.vending",
+    rawText: "Payment for subscription to Google One is successful, amount 87.580",
+    timestamp: 13000
+};
+
+const res1 = resolveDeduplication([brimoExpense], gplayExpense);
+assert.strictEqual(res1.action, 'MERGE');
+assert.strictEqual(res1.mergedExpense.merchant, 'Google One');
+console.log('✓ Scenario 1: BRImo + Google Pay merged into SINGLE notification with merchant:', res1.mergedExpense.merchant);
+
+// Scenario 2: Google Play arrives first, BRImo arrives 2s later
+const res2 = resolveDeduplication([gplayExpense], brimoExpense);
+assert.strictEqual(res2.action, 'MERGE');
+assert.strictEqual(res2.mergedExpense.merchant, 'Google One');
+console.log('✓ Scenario 2: Google Pay + BRImo (reverse order) merged into SINGLE notification with merchant:', res2.mergedExpense.merchant);
+
+// Scenario 3: Distinct coffee purchases of same amount ($4.50) NOT merged
+const coffee1 = { amount: "4.50", merchant: "Starbucks", packageName: "com.chase.sig.android", timestamp: 10000 };
+const coffee2 = { amount: "4.50", merchant: "Peets Coffee", packageName: "com.chase.sig.android", timestamp: 15000 };
+const resCoffee = resolveDeduplication([coffee1], coffee2);
+assert.strictEqual(resCoffee.action, 'ADD_NEW');
+console.log('✓ Scenario 3: Distinct merchant purchases with same amount are NOT falsely merged!');
+
 console.log('\n=============================================');
 console.log('ALL TESTS PASSED SUCCESSFULLY! (100% verified)');
 console.log('=============================================');

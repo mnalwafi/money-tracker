@@ -43,15 +43,15 @@ class DeterministicAmountExtractor @Inject constructor() {
 
         // Expense merchant patterns
         private val EXPENSE_MERCHANT_PATTERNS = listOf(
-            Pattern.compile("""(?i)(?:paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke|bayar\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|via|using|from|with|date|ref|\.|\,|$))"""),
-            Pattern.compile("""(?i)(?:at|to|in|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|via|using|from|with|date|ref|\.|\,|$))""")
+            Pattern.compile("""(?i)(?:payment\s+for\s+(?:subscribtion|subscription)\s+to|payment\s+for|subscription\s+to|subscribtion\s+to|paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke|bayar\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar)\b|\.|\,|$))"""),
+            Pattern.compile("""(?i)(?:at|to|in|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar)\b|\.|\,|$))""")
         )
 
         // Income source patterns
         private val INCOME_SOURCE_PATTERNS = listOf(
-            Pattern.compile("""(?i)(?:received\s+from|transfer\s+dari|dana\s+masuk\s+dari|uang\s+masuk\s+dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|via|using|with|date|ref|\.|\,|$))"""),
-            Pattern.compile("""(?i)(?:from|dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|via|using|with|date|ref|\.|\,|$))"""),
-            Pattern.compile("""(?i)(?:top[-\s]?up\s+via)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:on|date|ref|\.|\,|$))""")
+            Pattern.compile("""(?i)(?:received\s+from|transfer\s+dari|dana\s+masuk\s+dari|uang\s+masuk\s+dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:on|via|using|with|date|ref|amount|sebesar)\b|\.|\,|$))"""),
+            Pattern.compile("""(?i)(?:from|dari)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:on|via|using|with|date|ref|amount|sebesar)\b|\.|\,|$))"""),
+            Pattern.compile("""(?i)(?:top[-\s]?up\s+via)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:\b(?:on|date|ref|amount|sebesar)\b|\.|\,|$))""")
         )
 
         // Generic titles that should not be used as merchants

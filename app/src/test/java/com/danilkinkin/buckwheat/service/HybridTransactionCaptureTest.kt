@@ -288,4 +288,46 @@ class HybridTransactionCaptureTest {
         val isTelegramIgnored = HybridTransactionCaptureEngine.IGNORED_PACKAGES.contains("org.telegram.messenger")
         assertTrue("Telegram must be blacklisted in IGNORED_PACKAGES", isTelegramIgnored)
     }
+
+    @Test
+    fun pipeline_googleOneSubscriptionNotification_extractedAccurately() {
+        val title = "Google Play"
+        val text = "Payment for subscription to Google One is successful, amount 87.580"
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.EXPENSE, classification.type)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = false)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("87580.00"), extracted?.amount)
+        assertEquals("Google One", extracted?.merchant)
+    }
+
+    @Test
+    fun pipeline_googleOneSubscriptionWithTypoNotification_extractedAccurately() {
+        val title = "Google Play"
+        val text = "Payment for subscribtion to google one is successfullt, amount 87.580"
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.EXPENSE, classification.type)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = false)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("87580.00"), extracted?.amount)
+        assertEquals("google one", extracted?.merchant?.lowercase())
+    }
+
+    @Test
+    fun pipeline_brimoToGooglePayNotification_extractedAccurately() {
+        val title = "BRImo"
+        val text = "Transfer ke GOOGLE PAY sebesar Rp 87.580 berhasil"
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.EXPENSE, classification.type)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = false)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("87580.00"), extracted?.amount)
+        assertEquals("GOOGLE PAY", extracted?.merchant)
+    }
 }

@@ -4,6 +4,7 @@ import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.danilkinkin.buckwheat.data.PendingExpenseAddResult
 import com.danilkinkin.buckwheat.data.PendingExpenseRepository
 import com.danilkinkin.buckwheat.di.SettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
@@ -85,9 +86,20 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
                 )
 
                 if (parsedExpense != null) {
-                    Log.d(TAG, "Transaction detected: ${parsedExpense.type} ${parsedExpense.amount} at ${parsedExpense.merchant}")
-                    pendingExpenseRepository.addPendingExpense(parsedExpense)
-                    notificationHelper.showExpenseNotification(parsedExpense)
+                    val addResult = pendingExpenseRepository.addPendingExpense(parsedExpense)
+                    when (addResult) {
+                        is PendingExpenseAddResult.Added -> {
+                            Log.d(TAG, "Transaction detected: ${addResult.expense.type} ${addResult.expense.amount} at ${addResult.expense.merchant}")
+                            notificationHelper.showExpenseNotification(addResult.expense)
+                        }
+                        is PendingExpenseAddResult.Merged -> {
+                            Log.d(TAG, "Cross-app gateway transaction merged: ${addResult.mergedExpense.type} ${addResult.mergedExpense.amount} at ${addResult.mergedExpense.merchant}")
+                            notificationHelper.showExpenseNotification(addResult.mergedExpense)
+                        }
+                        is PendingExpenseAddResult.IgnoredDuplicate -> {
+                            Log.d(TAG, "Duplicate transaction ignored: ${parsedExpense.amount} at ${parsedExpense.merchant}")
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing incoming notification", e)
