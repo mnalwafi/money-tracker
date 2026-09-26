@@ -211,4 +211,35 @@
     <item quantity="one">Overdue by %1$d day</item>
     <item quantity="other">Overdue by %1$d days</item>
   </plurals>
+
+  <string name="close">Close</string>
+
+  <!-- Dashboard -->
+  <string name="dashboard_title">Dashboard</string>
+  <string name="dashboard_hero_subtitle">Safe Allowance Today</string>
+  <string name="dashboard_daily_target">Target: %1$s</string>
+  <string name="dashboard_spent_today">Spent: %1$s</string>
+  <string name="dashboard_on_track">On Track</string>
+  <string name="dashboard_over_budget">Over Budget</string>
+  <string name="dashboard_period_pool">Cycle Pool</string>
+  <string name="dashboard_period_remaining">%1$s remaining of %2$s</string>
+  <string name="dashboard_period_days_left">%1$d days left</string>
+  <string name="dashboard_no_budget_title">No Active Budget</string>
+  <string name="dashboard_no_budget_desc">Set up your cycle budget to view daily safe allowances</string>
+  <string name="dashboard_set_budget">Set Budget</string>
+  <plurals name="dashboard_pending_detected">
+    <item quantity="one">%1$d transaction detected</item>
+    <item quantity="other">%1$d transactions detected</item>
+  </plurals>
+  <string name="dashboard_pending_banner_desc">New transactions captured from notifications ready for review</string>
+  <string name="dashboard_pending_review">Review</string>
+  <string name="dashboard_upcoming_bills_title">Upcoming Bills</string>
+  <string name="dashboard_upcoming_bills_manage">Manage</string>
+  <string name="dashboard_upcoming_no_bills">No bills due in the next 7 days</string>
+  <string name="dashboard_recent_activity_title">Recent Activity</string>
+  <string name="dashboard_recent_see_all">Full History</string>
+  <string name="dashboard_recent_no_transactions">No recent transactions</string>
+  <string name="dashboard_quick_add">Quick Add</string>
+  <string name="dashboard_expense_label">Expense</string>
+  <string name="dashboard_income_label">Income</string>
 </resources>

@@ -30,6 +30,9 @@ import com.danilkinkin.buckwheat.recalcBudget.RECALCULATE_DAILY_BUDGET_SHEET
 import com.danilkinkin.buckwheat.recalcBudget.RecalcBudget
 import com.danilkinkin.buckwheat.recurring.RECURRING_TRANSACTIONS_SHEET
 import com.danilkinkin.buckwheat.recurring.RecurringTransactionsSheet
+import com.danilkinkin.buckwheat.dashboard.DASHBOARD_SHEET
+import com.danilkinkin.buckwheat.dashboard.DashboardScreen
+import com.danilkinkin.buckwheat.editor.EditorViewModel
 import com.danilkinkin.buckwheat.settings.*
 import com.danilkinkin.buckwheat.wallet.*
 import kotlinx.coroutines.launch
@@ -122,6 +125,36 @@ fun BottomSheets(
             onClose = {
                 coroutineScope.launch { state.hide() }
             }
+        )
+    }
+
+    BottomSheetWrapper(
+        name = DASHBOARD_SHEET,
+    ) { state ->
+        val editorViewModel: EditorViewModel = hiltViewModel()
+        DashboardScreen(
+            onQuickAdd = {
+                coroutineScope.launch { state.hide() }
+            },
+            onOpenRecurring = {
+                appViewModel.openSheet(PathState(RECURRING_TRANSACTIONS_SHEET))
+            },
+            onOpenHistory = {
+                appViewModel.openSheet(PathState(VIEWER_HISTORY_SHEET))
+            },
+            onOpenWallet = {
+                appViewModel.openSheet(PathState(WALLET_SHEET))
+            },
+            onReviewPending = {
+                coroutineScope.launch { state.hide() }
+            },
+            onEditTransaction = { transaction ->
+                editorViewModel.startEditingSpent(transaction)
+                coroutineScope.launch { state.hide() }
+            },
+            onClose = {
+                coroutineScope.launch { state.hide() }
+            },
         )
     }
 

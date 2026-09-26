@@ -18,10 +18,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.R
 import com.danilkinkin.buckwheat.base.BigIconButton
+import com.danilkinkin.buckwheat.dashboard.DASHBOARD_SHEET
 import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.PathState
 import com.danilkinkin.buckwheat.data.SpendsViewModel
@@ -67,33 +69,45 @@ fun EditorToolbar(
     }
 
     Row(
-        horizontalArrangement = Arrangement.End,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = if (isDebug.value) 6.dp else 20.dp, end = 6.dp, top = 6.dp)
+            .padding(start = 6.dp, end = 6.dp, top = 6.dp)
             .statusBarsPadding(),
     ) {
-        if (isDebug.value) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             BigIconButton(
-                icon = painterResource(R.drawable.ic_developer_mode),
+                icon = painterResource(R.drawable.ic_dashboard),
+                contentDescription = stringResource(R.string.dashboard_title),
+                onClick = {
+                    appViewModel.openSheet(PathState(DASHBOARD_SHEET))
+                },
+            )
+            if (isDebug.value) {
+                Spacer(modifier = Modifier.width(4.dp))
+                BigIconButton(
+                    icon = painterResource(R.drawable.ic_developer_mode),
+                    contentDescription = null,
+                    onClick = { appViewModel.openSheet(PathState(DEBUG_MENU_SHEET)) },
+                )
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (mode == EditMode.EDIT) {
+                CancelEditSpent()
+            } else {
+                RestBudgetPill()
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            BigIconButton(
+                icon = painterResource(R.drawable.ic_settings),
                 contentDescription = null,
-                onClick = { appViewModel.openSheet(PathState(DEBUG_MENU_SHEET)) },
+                onClick = {
+                    appViewModel.openSheet(PathState(SETTINGS_SHEET))
+                },
             )
         }
-        Spacer(modifier = Modifier.width(4.dp))
-        if (mode == EditMode.EDIT) {
-            CancelEditSpent()
-        } else {
-            RestBudgetPill()
-        }
-        Spacer(modifier = Modifier.width(4.dp))
-        BigIconButton(
-            icon = painterResource(R.drawable.ic_settings),
-            contentDescription = null,
-            onClick = {
-                appViewModel.openSheet(PathState(SETTINGS_SHEET))
-            },
-        )
     }
 }
