@@ -25,11 +25,25 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
             Pattern.compile("""\b(payment\s+failed|transaction\s+failed|transaksi\s+gagal|pembayaran\s+gagal)\b""", Pattern.CASE_INSENSITIVE)
         )
 
+        // Conversational / Peer-to-peer Chat patterns (Requests, reminders, personal chat)
+        private val CONVERSATIONAL_CHAT_PATTERNS = listOf(
+            Pattern.compile("""\b(rekening|rek)(\s+\w+)?\s+(aku|saya|gue|gw|kamu|lo|lu)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(aku|kamu|gue|gw|lo|lu)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(tolong|please|pls|jangan\s+lupa|ingetin|bisa\s+transfer|bisa\s+bayar|udah\s+bayar|udah\s+transfer)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(transfer\s+ke\s+(aku|gue|saya)|kirim\s+ke\s+(aku|gue|saya)|bayar\s+ke\s+(aku|gue|saya))\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(pay\s+me|send\s+me|wire\s+me|transfer\s+to\s+me|my\s+account|remind\s+me\s+to)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(bayar|transfer)\s+.*?\b(sekarang)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(sekarang\s+ya|nanti\s+ya|bro|sis|gan|kuy|dong|nih)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\?""")
+        )
+
         // Promotional / Noise patterns
         private val PROMO_PATTERNS = listOf(
             Pattern.compile("""\b(cashback|discount|coupon|diskon|promo|voucher)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(claim\s+your\s+(offer|reward|discount|voucher)?)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(penawaran\s+spesial|selamat\s+anda\s+mendapatkan|menangkan|win\s+up\s+to|special\s+offer)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(dapatkan\s+(promo|diskon|cashback|voucher|gratis|hadiah|penawaran)?)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(dan\s+dapatkan|and\s+get|gratis\s+ongkir|free\s+shipping|flash\s+sale)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(login\s+detected|new\s+device\s+login|security\s+alert|password\s+changed)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(login\s+dari\s+perangkat\s+baru|ganti\s+kata\s+sandi)\b""", Pattern.CASE_INSENSITIVE)
         )
@@ -98,6 +112,13 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
         for (pattern in PROMO_PATTERNS) {
             if (pattern.matcher(text).find()) {
                 noiseScore += 6.0
+            }
+        }
+
+        // 4. Evaluate Conversational / Peer-to-peer Chat patterns (High priority noise)
+        for (pattern in CONVERSATIONAL_CHAT_PATTERNS) {
+            if (pattern.matcher(text).find()) {
+                noiseScore += 8.0
             }
         }
 

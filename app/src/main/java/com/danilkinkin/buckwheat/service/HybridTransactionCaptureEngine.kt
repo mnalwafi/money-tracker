@@ -40,6 +40,39 @@ class HybridTransactionCaptureEngine @Inject constructor(
             "com.gojek.app",
             "ovo.id"
         )
+
+        // Non-financial messaging, social media, and communication packages that should never trigger financial tracking
+        val IGNORED_PACKAGES = setOf(
+            "com.whatsapp",
+            "com.whatsapp.w4b",
+            "org.telegram.messenger",
+            "org.telegram.plus",
+            "org.thunderdog.chimeravpn",
+            "com.facebook.orca",
+            "com.facebook.katana",
+            "com.facebook.lite",
+            "com.instagram.android",
+            "com.twitter.android",
+            "com.twitter.android.lite",
+            "com.discord",
+            "com.Slack",
+            "jp.naver.line.android",
+            "com.tencent.mm",
+            "org.thoughtcrime.securesms",
+            "com.viber.voip",
+            "com.skype.raider",
+            "com.snapchat.android",
+            "com.reddit.frontpage",
+            "com.zhiliaoapp.musically",
+            "com.ss.android.ugc.trill",
+            "com.google.android.youtube",
+            "com.spotify.music",
+            "com.netflix.mediaclient",
+            "com.google.android.talk",
+            "com.google.android.apps.tachyon",
+            "com.microsoft.teams",
+            "us.zoom.videomeetings"
+        )
     }
 
     /**
@@ -57,6 +90,12 @@ class HybridTransactionCaptureEngine @Inject constructor(
         confidenceThreshold: Float = DEFAULT_CONFIDENCE_THRESHOLD,
         allowedPackages: Set<String>? = null
     ): ParsedExpense? {
+        // Immediately ignore personal chat, messaging, and social apps
+        if (IGNORED_PACKAGES.contains(packageName)) {
+            Log.d(TAG, "Ignoring notification from messaging/social app: $packageName")
+            return null
+        }
+
         val safeTitle = title?.trim() ?: ""
         val safeText = text?.trim() ?: ""
         val combined = "$safeTitle $safeText".trim()

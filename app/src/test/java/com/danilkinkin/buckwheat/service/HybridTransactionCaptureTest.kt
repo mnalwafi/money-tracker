@@ -90,6 +90,22 @@ class HybridTransactionCaptureTest {
         }
     }
 
+    @Test
+    fun classifier_conversationalChatAndPromoBaitNotification_classifiedAsNoise() {
+        val texts = listOf(
+            "bayar 200.000 ke rekening bri aku sekarang",
+            "bayar 250.000 sekarang dan dapatkan promo shopee terbaru",
+            "tolong transfer 50.000 ya bro",
+            "can you pay $20 for lunch?",
+            "Bro, rekening bri aku ya jangan lupa bayar 150k"
+        )
+
+        for (text in texts) {
+            val result = classifier.classify(text)
+            assertEquals("Expected NOISE for conversational/promo text: $text", TransactionClassificationType.NOISE, result.type)
+        }
+    }
+
     // ==========================================
     // 2. Deterministic Extractor Tests
     // ==========================================
@@ -262,5 +278,14 @@ class HybridTransactionCaptureTest {
         val classification = classifier.classify("$title $text")
 
         assertEquals(TransactionClassificationType.NOISE, classification.type)
+    }
+
+    @Test
+    fun pipeline_chatAppNotification_rejectedByPackageFilter() {
+        val isIgnored = HybridTransactionCaptureEngine.IGNORED_PACKAGES.contains("com.whatsapp")
+        assertTrue("WhatsApp must be blacklisted in IGNORED_PACKAGES", isIgnored)
+
+        val isTelegramIgnored = HybridTransactionCaptureEngine.IGNORED_PACKAGES.contains("org.telegram.messenger")
+        assertTrue("Telegram must be blacklisted in IGNORED_PACKAGES", isTelegramIgnored)
     }
 }

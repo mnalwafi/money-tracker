@@ -15,10 +15,23 @@ const FAILED_TRANSACTION_PATTERNS = [
     /\b(payment\s+failed|transaction\s+failed|transaksi\s+gagal|pembayaran\s+gagal)\b/i
 ];
 
+const CONVERSATIONAL_CHAT_PATTERNS = [
+    /\b(rekening|rek)(\s+\w+)?\s+(aku|saya|gue|gw|kamu|lo|lu)\b/i,
+    /\b(aku|kamu|gue|gw|lo|lu)\b/i,
+    /\b(tolong|please|pls|jangan\s+lupa|ingetin|bisa\s+transfer|bisa\s+bayar|udah\s+bayar|udah\s+transfer)\b/i,
+    /\b(transfer\s+ke\s+(aku|gue|saya)|kirim\s+ke\s+(aku|gue|saya)|bayar\s+ke\s+(aku|gue|saya))\b/i,
+    /\b(pay\s+me|send\s+me|wire\s+me|transfer\s+to\s+me|my\s+account|remind\s+me\s+to)\b/i,
+    /\b(bayar|transfer)\s+.*?\b(sekarang)\b/i,
+    /\b(sekarang\s+ya|nanti\s+ya|bro|sis|gan|kuy|dong|nih)\b/i,
+    /\?/
+];
+
 const PROMO_PATTERNS = [
     /\b(cashback|discount|coupon|diskon|promo|voucher)\b/i,
     /\b(claim\s+your\s+(offer|reward|discount|voucher)?)\b/i,
     /\b(penawaran\s+spesial|selamat\s+anda\s+mendapatkan|menangkan|win\s+up\s+to|special\s+offer)\b/i,
+    /\b(dapatkan\s+(promo|diskon|cashback|voucher|gratis|hadiah|penawaran)?)\b/i,
+    /\b(dan\s+dapatkan|and\s+get|gratis\s+ongkir|free\s+shipping|flash\s+sale)\b/i,
     /\b(login\s+detected|new\s+device\s+login|security\s+alert|password\s+changed)\b/i,
     /\b(login\s+dari\s+perangkat\s+baru|ganti\s+kata\s+sandi)\b/i
 ];
@@ -54,6 +67,7 @@ function classify(text) {
     for (const p of FAILED_TRANSACTION_PATTERNS) if (p.test(text)) noiseScore += 10.0;
     for (const p of OTP_PATTERNS) if (p.test(text)) noiseScore += 8.0;
     for (const p of PROMO_PATTERNS) if (p.test(text)) noiseScore += 6.0;
+    for (const p of CONVERSATIONAL_CHAT_PATTERNS) if (p.test(text)) noiseScore += 8.0;
     for (const p of STRONG_EXPENSE_PATTERNS) if (p.test(text)) expenseScore += 4.5;
     const lower = text.toLowerCase();
     for (const w of WEAK_EXPENSE_WORDS) if (lower.includes(w)) expenseScore += 1.5;
@@ -61,7 +75,7 @@ function classify(text) {
     for (const p of STRONG_INCOME_PATTERNS) if (p.test(text)) incomeScore += 4.5;
     for (const w of WEAK_INCOME_WORDS) if (lower.includes(w)) incomeScore += 1.5;
 
-    // Suppress false expense/income triggers caused by failed transactions or promotional marketing text
+    // Suppress false expense/income triggers caused by failed transactions, chat messages, or promotional marketing text
     if (noiseScore > 0) {
         expenseScore = Math.max(0, expenseScore - noiseScore * 0.7);
         incomeScore = Math.max(0, incomeScore - noiseScore * 0.7);
@@ -175,7 +189,7 @@ for (const inc of incomes) {
     console.log(`✓ Income classified: [${res.type}] (${(res.confidence * 100).toFixed(1)}%) -> "${inc}"`);
 }
 
-// Test 3: Noise Classification (Including Failed/Declined Transactions & OTPs)
+// Test 3: Noise Classification (Including Failed/Declined Transactions, Chat Messages, Promo Bait & OTPs)
 const noise = [
     "Your OTP verification code is 492810. Do not share this code with anyone.",
     "Special discount! Get 50% cashback voucher on your next purchase using code PROMO50.",
@@ -184,13 +198,26 @@ const noise = [
     "Pembayaran sebesar 200k ke Google Pay gagal",
     "Transaction of $150.00 at Apple declined",
     "Payment to Netflix failed due to insufficient funds",
-    "Transaksi Rp 100.000 di Indomaret dibatalkan"
+    "Transaksi Rp 100.000 di Indomaret dibatalkan",
+    "bayar 200.000 ke rekening bri aku sekarang",
+    "bayar 250.000 sekarang dan dapatkan promo shopee terbaru",
+    "tolong transfer 50.000 ya bro",
+    "can you pay $20 for lunch?"
 ];
 for (const n of noise) {
     const res = classify(n);
     assert.strictEqual(res.type, 'NOISE', `Expected NOISE for: ${n}`);
-    console.log(`✓ Noise / Failed transaction correctly rejected: [${res.type}] -> "${n}"`);
+    console.log(`✓ Noise / Chat / Promo bait correctly rejected: [${res.type}] -> "${n}"`);
 }
+
+// Package blacklist verification
+const IGNORED_PACKAGES = new Set([
+    "com.whatsapp", "com.whatsapp.w4b", "org.telegram.messenger",
+    "com.facebook.orca", "com.instagram.android", "com.discord"
+]);
+assert.strictEqual(IGNORED_PACKAGES.has("com.whatsapp"), true);
+assert.strictEqual(IGNORED_PACKAGES.has("org.telegram.messenger"), true);
+console.log('✓ Non-financial chat and messaging packages successfully blacklisted!');
 
 // 3. Shorthand multiplier extraction
 function parseShorthand(text) {

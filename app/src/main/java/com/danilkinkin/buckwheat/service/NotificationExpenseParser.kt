@@ -64,6 +64,44 @@ class NotificationExpenseParser @Inject constructor() {
             "ovo.id"
         )
 
+        // Non-financial messaging, social media, and communication packages that should never trigger financial tracking
+        val IGNORED_PACKAGES = setOf(
+            "com.whatsapp",
+            "com.whatsapp.w4b",
+            "org.telegram.messenger",
+            "org.telegram.plus",
+            "org.thunderdog.chimeravpn",
+            "com.facebook.orca",
+            "com.facebook.katana",
+            "com.facebook.lite",
+            "com.instagram.android",
+            "com.twitter.android",
+            "com.twitter.android.lite",
+            "com.discord",
+            "com.Slack",
+            "jp.naver.line.android",
+            "com.tencent.mm",
+            "org.thoughtcrime.securesms",
+            "com.viber.voip",
+            "com.skype.raider",
+            "com.snapchat.android",
+            "com.reddit.frontpage",
+            "com.zhiliaoapp.musically",
+            "com.ss.android.ugc.trill",
+            "com.google.android.youtube",
+            "com.spotify.music",
+            "com.netflix.mediaclient",
+            "com.google.android.talk",
+            "com.google.android.apps.tachyon",
+            "com.microsoft.teams",
+            "us.zoom.videomeetings"
+        )
+
+        private val CHAT_REQUEST_PATTERN = Pattern.compile(
+            """\b(rekening\s+(aku|saya|gue|gw|kamu|lo|lu)|tolong|please|pls|jangan\s+lupa|sekarang\s+ya|pay\s+me|send\s+me)\b""",
+            Pattern.CASE_INSENSITIVE
+        )
+
         // Currency symbols and codes regex
         private const val CURRENCY_REGEX =
             """(?i)(?:[$€£¥₹]|Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY)"""
@@ -111,6 +149,11 @@ class NotificationExpenseParser @Inject constructor() {
 
         if (combinedContent.isBlank()) return null
 
+        // 0. Reject non-financial messaging, social media, and chat apps
+        if (IGNORED_PACKAGES.contains(packageName)) {
+            return null
+        }
+
         // 1. Check package whitelist if provided
         if (allowedPackages != null && allowedPackages.isNotEmpty() && !allowedPackages.contains(packageName)) {
             return null
@@ -152,6 +195,7 @@ class NotificationExpenseParser @Inject constructor() {
      */
     fun isExcluded(content: String): Boolean {
         if (FAILED_TRANSACTION_PATTERN.matcher(content).find()) return true
+        if (CHAT_REQUEST_PATTERN.matcher(content).find()) return true
         if (OTP_PATTERN.matcher(content).find()) return true
         if (REFUND_PATTERN.matcher(content).find()) return true
         if (PROMO_PATTERN.matcher(content).find()) return true
