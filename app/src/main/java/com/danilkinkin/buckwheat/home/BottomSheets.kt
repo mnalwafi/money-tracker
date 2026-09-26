@@ -119,7 +119,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = DEFAULT_RECALC_BUDGET_CHOOSER,
-        modifier = Modifier.zIndex(10f),
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         DefaultRecalcBudgetChooser(
             onClose = {
@@ -132,7 +132,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = CURRENCY_EDITOR,
-        modifier = Modifier.zIndex(10f),
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         CurrencyEditor(
             onClose = {
@@ -145,7 +145,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = FINISH_DATE_SELECTOR_SHEET,
-        modifier = Modifier.zIndex(10f),
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         FinishDateSelector(
             selectDate = state.args["initialDate"] as Date?,
@@ -228,6 +228,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = ON_BOARDING_SHEET,
+        modifier = Modifier.zIndex(10f),
         cancelable = false,
     ) { state ->
         Onboarding(
@@ -243,6 +244,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = NEW_DAY_BUDGET_DESCRIPTION_SHEET,
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         NewDayBudgetDescription(
             onClose = {
@@ -253,6 +255,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = BUDGET_IS_OVER_DESCRIPTION_SHEET,
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         BudgetIsOverDescription(
             onClose = {
@@ -264,6 +267,7 @@ fun BottomSheets(
     if (isDebug.value) {
         BottomSheetWrapper(
             name = DEBUG_MENU_SHEET,
+            modifier = Modifier.zIndex(20f),
         ) { state ->
             DebugMenu(
                 onClose = {
@@ -275,6 +279,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = BUG_REPORTER_SHEET,
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         BugReporter(
             onClose = {
@@ -285,6 +290,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = SETTINGS_CHANGE_THEME_SHEET,
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         ThemeSwitcherDialog(
             onClose = {
@@ -295,6 +301,7 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = SETTINGS_CHANGE_LOCALE_SHEET,
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         LangSwitcherDialog(
             onClose = {
@@ -305,11 +312,12 @@ fun BottomSheets(
 
     BottomSheetWrapper(
         name = SETTINGS_TRY_WIDGET_SHEET,
+        modifier = Modifier.zIndex(20f),
     ) { state ->
         TryWidgetDialog()
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().zIndex(100f)) {
         Confetti(
             modifier = Modifier.fillMaxSize(),
             controller = appViewModel.confettiController,
