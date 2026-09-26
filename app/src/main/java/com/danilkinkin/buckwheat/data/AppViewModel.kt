@@ -98,19 +98,11 @@ class AppViewModel @Inject constructor(
     }
 
     fun openSheet(state: PathState) {
-        val current = sheetStates.value ?: emptyMap()
-        if (current.containsKey(state.name)) {
-            sheetStates.value = current
-            return
-        }
-        sheetStates.value = current.plus(Pair(state.name, state))
+        sheetStates.value = sheetStates.value!!.plus(Pair(state.name, state))
     }
 
     fun closeSheet(name: String) {
-        val current = sheetStates.value ?: emptyMap()
-        if (current.containsKey(name)) {
-            sheetStates.value = current.minus(name)
-        }
+        sheetStates.value = sheetStates.value!!.minus(name)
     }
 
     fun passTutorial(name: TUTORS) {

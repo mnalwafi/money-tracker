@@ -31,10 +31,7 @@ import com.danilkinkin.buckwheat.LocalWindowInsets
 import com.danilkinkin.buckwheat.util.PreUpPostDownNestedScrollConnection
 import com.danilkinkin.buckwheat.util.SwipeableState
 import com.danilkinkin.buckwheat.util.swipeable
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -70,24 +67,11 @@ class ModalBottomSheetState(
     }
 
     suspend fun realShow() {
-        val target = when {
+        val targetValue = when {
             //hasHalfExpandedState -> ModalBottomSheetValue.HalfExpanded
             else -> ModalBottomSheetValue.Expanded
         }
-        if (currentValue == target && !isAnimationRunning) return
-        if (targetValue == target && isAnimationRunning) return
-        try {
-            animateTo(targetValue = target)
-        } catch (c: CancellationException) {
-            withContext(NonCancellable) {
-                if (currentValue != target) {
-                    try {
-                        snapTo(ModalBottomSheetValue.Hidden)
-                    } catch (_: Exception) {}
-                }
-            }
-            throw c
-        }
+        animateTo(targetValue = targetValue)
     }
 
     fun show(args: Map<String, Any?>) {
@@ -105,25 +89,7 @@ class ModalBottomSheetState(
 
     suspend fun hide(result: Map<String, Any?>) {
         callback(result)
-        if (currentValue == ModalBottomSheetValue.Hidden && !isAnimationRunning) {
-            render = false
-            return
-        }
-        if (targetValue == ModalBottomSheetValue.Hidden && isAnimationRunning) return
-        try {
-            animateTo(ModalBottomSheetValue.Hidden)
-        } catch (c: CancellationException) {
-            withContext(NonCancellable) {
-                try {
-                    snapTo(ModalBottomSheetValue.Hidden)
-                } catch (_: Exception) {}
-            }
-            throw c
-        } finally {
-            if (currentValue == ModalBottomSheetValue.Hidden) {
-                render = false
-            }
-        }
+        animateTo(ModalBottomSheetValue.Hidden)
     }
 
     suspend fun hide() {
@@ -225,11 +191,7 @@ fun ModalBottomSheetLayout(
             Scrim(
                 color = scrimColor,
                 onDismiss = {
-                    if (cancelable &&
-                        !sheetState.isAnimationRunning &&
-                        sheetState.currentValue == ModalBottomSheetValue.Expanded &&
-                        sheetState.confirmStateChange(ModalBottomSheetValue.Hidden)
-                    ) {
+                    if (cancelable && sheetState.confirmStateChange(ModalBottomSheetValue.Hidden)) {
                         scope.launch { sheetState.hide() }
                     }
                 },

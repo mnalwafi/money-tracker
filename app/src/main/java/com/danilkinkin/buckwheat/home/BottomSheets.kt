@@ -39,15 +39,11 @@ import kotlinx.coroutines.launch
 import java.util.*
 
 import androidx.compose.animation.core.spring
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.zIndex
 import com.danilkinkin.buckwheat.base.ModalBottomSheetState
 import com.danilkinkin.buckwheat.base.ModalBottomSheetValue
 import com.danilkinkin.buckwheat.base.rememberModalBottomSheetState
 import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
-
-@OptIn(ExperimentalMaterialApi::class)
-val LocalDashboardSheetState = compositionLocalOf<ModalBottomSheetState?> { null }
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable

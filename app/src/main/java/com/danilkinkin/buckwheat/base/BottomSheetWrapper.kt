@@ -68,46 +68,25 @@ fun BottomSheetWrapper(
     observeLiveData(appViewModel.sheetStates) { sheets ->
         if (sheets.containsKey(name)) {
             state.bindCallback(sheets[name]!!.callback)
-            state.show(sheets[name]!!.args)
-        } else if (state.targetValue !== ModalBottomSheetValue.Hidden || state.currentValue !== ModalBottomSheetValue.Hidden) {
-            if (!state.isAnimationRunning || state.targetValue != ModalBottomSheetValue.Hidden) {
-                coroutineScope.launch { state.hide() }
-            }
+            coroutineScope.launch { state.show(sheets[name]!!.args) }
+        } else if (state.targetValue !== ModalBottomSheetValue.Hidden) {
+            coroutineScope.launch { state.hide() }
         }
     }
 
-    LaunchedEffect(state.render, appViewModel.sheetStates.value?.containsKey(name)) {
-        val isRequested = appViewModel.sheetStates.value?.containsKey(name) == true
-        if (isRequested && state.render) {
-            if (state.currentValue == ModalBottomSheetValue.Expanded && !state.isAnimationRunning) {
-                return@LaunchedEffect
-            }
-            if (state.targetValue == ModalBottomSheetValue.Expanded && state.isAnimationRunning) {
-                return@LaunchedEffect
-            }
-            try {
-                state.realShow()
-            } catch (e: CancellationException) {
-                if (state.currentValue != ModalBottomSheetValue.Expanded) {
-                    state.render = false
-                    appViewModel.closeSheet(name)
-                }
-                throw e
-            }
-        }
+    DisposableEffect(state.render) {
+        if (state.render) coroutineScope.launch { state.realShow() }
+
+        onDispose { }
     }
 
-    LaunchedEffect(state.currentValue, state.isAnimationRunning, state.targetValue, state.render) {
-        val isRequested = appViewModel.sheetStates.value?.containsKey(name) == true
-        if (!isRequested &&
-            state.render &&
-            state.currentValue == ModalBottomSheetValue.Hidden &&
-            !state.isAnimationRunning &&
-            state.targetValue == ModalBottomSheetValue.Hidden
-        ) {
+    DisposableEffect(state.currentValue) {
+        if (state.currentValue === ModalBottomSheetValue.Hidden) {
             state.render = false
             appViewModel.closeSheet(name)
         }
+
+        onDispose { }
     }
 
     if (!state.render) return
