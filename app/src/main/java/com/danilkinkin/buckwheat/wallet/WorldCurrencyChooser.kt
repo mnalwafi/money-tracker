@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
@@ -173,8 +174,11 @@ fun WorldCurrencyChooserContent(
                         verticalArrangement = Arrangement.spacedBy(0.dp),
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        filteredList.forEach {
-                            itemsCurrency(
+                        items(
+                            items = filteredList,
+                            key = { it.currencyCode },
+                        ) {
+                            CurrencyRow(
                                 currency = it,
                                 selected = selectCurrency.value?.currencyCode === it.currencyCode,
                                 onClick = {
@@ -228,33 +232,32 @@ fun WorldCurrencyChooserContent(
     }
 }
 
-private fun LazyListScope.itemsCurrency(
+@Composable
+private fun CurrencyRow(
     currency: Currency,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    item(currency.currencyCode) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = selected,
-                    onValueChange = { onClick() },
-                    role = Role.Checkbox
-                )
-                .padding(start = 24.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-        ) {
-            Text(
-                text = currency.displayName.titleCase(),
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false,
-                modifier = Modifier.weight(1f)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = selected,
+                onValueChange = { onClick() },
+                role = Role.Checkbox
             )
-            Spacer(modifier = Modifier.widthIn(8.dp))
-            RadioButton(selected = selected, onClick = null)
-        }
+            .padding(start = 24.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+    ) {
+        Text(
+            text = currency.displayName.titleCase(),
+            overflow = TextOverflow.Ellipsis,
+            softWrap = false,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.widthIn(8.dp))
+        RadioButton(selected = selected, onClick = null)
     }
 }
 

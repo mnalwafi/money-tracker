@@ -15,6 +15,12 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.exp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 @Singleton
 class TfLiteTransactionClassifier @Inject constructor(
@@ -37,11 +43,17 @@ class TfLiteTransactionClassifier @Inject constructor(
     }
 
     private var interpreter: Interpreter? = null
-    private val vocab = mutableMapOf<String, Int>()
+    private val vocab = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    @Volatile
     private var isModelReady = false
 
-    init {
+    private val classifierScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+    private val initJob: kotlinx.coroutines.Job = classifierScope.launch {
         initializeEngine()
+    }
+
+    suspend fun awaitInitialization() {
+        initJob.join()
     }
 
     private fun initializeEngine() {
@@ -51,17 +63,21 @@ class TfLiteTransactionClassifier @Inject constructor(
             if (modelBuffer != null) {
                 val options = Interpreter.Options()
                 options.setNumThreads(2)
-                interpreter = Interpreter(modelBuffer, options)
-                isModelReady = true
-                Log.i(TAG, "TFLite model successfully initialized.")
+                synchronized(this) {
+                    interpreter = Interpreter(modelBuffer, options)
+                    isModelReady = true
+                }
+                Log.i(TAG, "TFLite model successfully initialized on background thread.")
             } else {
                 Log.w(TAG, "Model buffer is null, falling back to rule-based classifier.")
                 isModelReady = false
             }
         } catch (t: Throwable) {
             Log.w(TAG, "TFLite initialization failed, using rule-based fallback: ${t.message}")
-            interpreter = null
-            isModelReady = false
+            synchronized(this) {
+                interpreter = null
+                isModelReady = false
+            }
         }
     }
 
@@ -105,7 +121,9 @@ class TfLiteTransactionClassifier @Inject constructor(
         return try {
             val inputTensor = preprocessText(text)
             val outputScores = Array(1) { FloatArray(3) }
-            interpreter?.run(inputTensor, outputScores)
+            synchronized(this) {
+                interpreter?.run(inputTensor, outputScores)
+            }
 
             val rawScores = outputScores[0]
             val probabilities = softmax(rawScores)
@@ -138,6 +156,13 @@ class TfLiteTransactionClassifier @Inject constructor(
             Log.w(TAG, "Inference error in TFLite model, falling back to rule-based engine", t)
             ruleBasedFallback.classify(text)
         }
+    }
+
+    suspend fun classifySuspend(text: String): ClassificationResult {
+        if (!isModelReady && initJob.isActive) {
+            initJob.join()
+        }
+        return classify(text)
     }
 
     private fun preprocessText(text: String): Array<IntArray> {
@@ -180,8 +205,13 @@ class TfLiteTransactionClassifier @Inject constructor(
     }
 
     fun close() {
+        classifierScope.cancel()
         try {
-            interpreter?.close()
+            synchronized(this) {
+                interpreter?.close()
+                interpreter = null
+                isModelReady = false
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Error closing TFLite interpreter", e)
         }

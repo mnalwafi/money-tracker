@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
@@ -203,22 +205,7 @@ fun ModalBottomSheetLayout(
         RenderAdaptivePane(
             contentAlignment = Alignment.TopEnd
         ) {
-
-            val offset = IntOffset.let {
-                val y = if (sheetState.anchors.isEmpty()) {
-                    // if we don't know our anchors yet, render the sheet as hidden
-                    fullHeight.roundToInt()
-                } else {
-                    // if we do know our anchors, respect them
-                    sheetState.offset.value.roundToInt()
-                }
-
-                IntOffset(0, y)
-            }
-            val navigationBarHeight = with(localDensity) {
-                LocalWindowInsets.current.calculateBottomPadding().roundToPx()
-            }
-
+            val predictiveBackOffsetPx = with(localDensity) { 64.dp.toPx() }
 
             Surface(
                 Modifier
@@ -230,11 +217,23 @@ fun ModalBottomSheetLayout(
                             Modifier
                         }
                     )
-                    .offset { offset }
-                    .offset { offset.copy(y = offset.y + navigationBarHeight) }
-                    .scale(1f - predictiveBackProgress * 0.08f)
-                    .offset(y = predictiveBackProgress * 64.dp)
-                    .offset { offset.copy(y = -offset.y - navigationBarHeight) }
+                    .offset {
+                        val y = if (sheetState.anchors.isEmpty()) {
+                            // if we don't know our anchors yet, render the sheet as hidden
+                            fullHeight.roundToInt()
+                        } else {
+                            // if we do know our anchors, respect them
+                            sheetState.offset.value.roundToInt()
+                        }
+                        IntOffset(0, y)
+                    }
+                    .graphicsLayer {
+                        val scale = 1f - predictiveBackProgress * 0.08f
+                        scaleX = scale
+                        scaleY = scale
+                        translationY = predictiveBackProgress * predictiveBackOffsetPx
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                    }
                     .bottomSheetSwipeable(sheetState, fullHeight, sheetHeightState, cancelable),
                 shape = sheetShape,
                 elevation = sheetElevation,

@@ -85,8 +85,7 @@ fun Settings(
                 ) {
                     Text(
                         text = stringResource(R.string.settings_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = BuckwheatDesignSystem.Typography.drawerTitle,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }

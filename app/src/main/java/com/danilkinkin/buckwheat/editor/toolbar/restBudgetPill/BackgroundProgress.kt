@@ -71,6 +71,8 @@ fun BackgroundProgress(
         anim()
     }
 
+    val wavePath = remember { Path() }
+
     Box(Modifier.fillMaxSize()) {
         AnimatedVisibility(
             visible = percentWithNewSpent != percentWithoutNewSpent,
@@ -80,24 +82,25 @@ fun BackgroundProgress(
             Box(
                 modifier = Modifier
                     .drawBehind {
-                        drawPath(
-                            path = Path().apply {
-                                val halfPeriod = 30.dp.toPx() / 2
-                                val amplitude = (percentWithNewSpentAnimated.clamp(0.96f, 1f) * 2.dp).toPx()
+                        wavePath.reset()
+                        val halfPeriod = 30.dp.toPx() / 2
+                        val amplitude = (percentWithNewSpentAnimated.clamp(0.96f, 1f) * 2.dp).toPx()
 
-                                moveTo(
-                                    size.width - amplitude,
-                                    -halfPeriod * 2.5f + halfPeriod * 2 * shift.value
-                                )
-                                repeat(ceil(size.height / halfPeriod + 3).toInt()) { i ->
-                                    relativeQuadraticBezierTo(
-                                        dx1 = 2 * amplitude * (if (i % 2 == 0) 1 else -1),
-                                        dy1 = halfPeriod / 2,
-                                        dx2 = 0f,
-                                        dy2 = halfPeriod,
-                                    )
-                                }
-                            },
+                        wavePath.moveTo(
+                            size.width - amplitude,
+                            -halfPeriod * 2.5f + halfPeriod * 2 * shift.value
+                        )
+                        repeat(ceil(size.height / halfPeriod + 3).toInt()) { i ->
+                            wavePath.relativeQuadraticBezierTo(
+                                dx1 = 2 * amplitude * (if (i % 2 == 0) 1 else -1),
+                                dy1 = halfPeriod / 2,
+                                dx2 = 0f,
+                                dy2 = halfPeriod,
+                            )
+                        }
+
+                        drawPath(
+                            path = wavePath,
                             color = harmonizedColor.main.copy(alpha = 0.3f),
                             style = Stroke(
                                 width = 2.dp.toPx(),

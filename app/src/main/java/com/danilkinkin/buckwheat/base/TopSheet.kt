@@ -37,10 +37,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -109,7 +110,6 @@ fun TopSheetLayout(
         val halfHeight = customHalfHeight ?: (fullHeight / 2)
         val expandHeight =
             with(localDensity) { (fullHeight - navigationBarHeight.toPx() - 16.dp.toPx()) }
-        val currOffset = swipeableState.offset.value
         val maxOffset = (-(expandHeight - halfHeight)).coerceAtMost(0f)
 
         val prevHalfHeight = remember { mutableFloatStateOf(halfHeight) }
@@ -117,10 +117,12 @@ fun TopSheetLayout(
             mutableStateOf(prevHalfHeight.value != halfHeight && swipeableState.isAnimationRunning)
         }
 
-        val progress = if (isLockProgress.value) {
-            if (swipeableState.currentValue === TopSheetValue.HalfExpanded) 0f else 1f
-        } else {
-            (1f - (currOffset / maxOffset)).coerceIn(0f, 1f)
+        val progressProvider = {
+            if (isLockProgress.value) {
+                if (swipeableState.currentValue === TopSheetValue.HalfExpanded) 0f else 1f
+            } else {
+                (1f - (swipeableState.offset.value / maxOffset)).coerceIn(0f, 1f)
+            }
         }
 
         prevHalfHeight.value = halfHeight
@@ -178,7 +180,9 @@ fun TopSheetLayout(
         Box(Modifier.fillMaxSize()) {
             Scrim(
                 color = ModalBottomSheetDefaults.scrimColor,
-                targetValue = (progress * 5).coerceIn(0f, 1f) * (1f - predictiveBackProgress * 0.7f),
+                targetValue = {
+                    (progressProvider() * 5).coerceIn(0f, 1f) * (1f - predictiveBackProgress * 0.7f)
+                },
             )
         }
 
@@ -218,61 +222,70 @@ fun TopSheetLayout(
                 )
 
         ) {
+            val editorBg = colorEditor
             Box(modifier = modifier.fillMaxSize()) {
-                if (progress != 0f) {
-                    Box(
-                        Modifier
-                            .fillMaxSize()
-                            .alpha(max(progress * 2f - 1f, 0f))
-                    ) {
-                        sheetContentExpand()
-                    }
+                val isExpanded = swipeableState.targetValue === TopSheetValue.Expanded || swipeableState.currentValue === TopSheetValue.Expanded
 
-                    DisposableEffect(Unit) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = max(progressProvider() * 2f - 1f, 0f)
+                        }
+                ) {
+                    sheetContentExpand()
+                }
+
+                DisposableEffect(isExpanded) {
+                    if (isExpanded) {
                         if (tutorial === TUTORIAL_STAGE.READY_TO_SHOW) {
                             appViewModel.passTutorial(TUTORS.OPEN_HISTORY)
                         }
-
                         appViewModel.topSheetDown.value = true
+                    }
 
-                        onDispose {
+                    onDispose {
+                        if (isExpanded) {
                             appViewModel.topSheetDown.value = false
                         }
                     }
                 }
 
-                if (progress != 1f) {
-                    Column(
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = max(1f - progressProvider() * 2, 0f)
+                        },
+                ) {
+                    Box(
                         Modifier
-                            .fillMaxSize()
-                            .alpha(max(1f - progress * 2, 0f)),
-                    ) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1F)
-                                .background(colorEditor)
-                        )
-                        sheetContentHalfExpand()
-                    }
+                            .fillMaxWidth()
+                            .weight(1F)
+                            .background(editorBg)
+                    )
+                    sheetContentHalfExpand()
                 }
 
                 Box(
                     Modifier
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    colorEditor.copy(alpha = 0f),
-                                    colorEditor.copy(
-                                        alpha = progress
-                                            .roundToInt()
-                                            .toFloat()
+                        .drawBehind {
+                            val p = progressProvider()
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(
+                                        editorBg.copy(alpha = 0f),
+                                        editorBg.copy(
+                                            alpha = p
+                                                .roundToInt()
+                                                .toFloat()
+                                        ),
                                     ),
-                                ),
-                                startY = 20f,
-                                endY = 80f,
+                                    startY = 20f,
+                                    endY = 80f,
+                                )
                             )
-                        )
+                        }
                         .pointerInteropFilter {
                             when (it.action) {
                                 MotionEvent.ACTION_DOWN -> {
@@ -358,14 +371,21 @@ fun TopSheetLayout(
 @Composable
 fun Scrim(
     color: Color,
-    targetValue: Float
+    targetValue: () -> Float
 ) {
     if (color.isSpecified) {
-
         Canvas(
             Modifier.fillMaxSize()
         ) {
-            drawRect(color = color, alpha = targetValue)
+            drawRect(color = color, alpha = targetValue())
         }
     }
+}
+
+@Composable
+fun Scrim(
+    color: Color,
+    targetValue: Float
+) {
+    Scrim(color = color, targetValue = { targetValue })
 }

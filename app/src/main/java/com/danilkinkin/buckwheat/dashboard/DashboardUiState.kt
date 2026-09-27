@@ -1,10 +1,12 @@
 package com.danilkinkin.buckwheat.dashboard
 
+import androidx.compose.runtime.Immutable
 import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.data.entities.RecurringTransaction
 import com.danilkinkin.buckwheat.data.entities.Transaction
 import java.math.BigDecimal
 
+@Immutable
 data class DashboardUiState(
     val todayAllowance: BigDecimal = BigDecimal.ZERO,
     val todaySpent: BigDecimal = BigDecimal.ZERO,

@@ -7,7 +7,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.relocation.BringIntoViewResponder
+import androidx.compose.foundation.relocation.bringIntoViewResponder
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -70,6 +74,10 @@ fun TaggingToolbar(
         }
     }
 
+    val tagClickHandlers = remember(displayTags, onSelectTag) {
+        displayTags.associateWith { tag -> { onSelectTag(tag) } }
+    }
+
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val extendWidth = (screenWidth - 48.dp).coerceAtLeast(200.dp)
 
@@ -89,9 +97,7 @@ fun TaggingToolbar(
         ) {
             displayTags.forEach { tag ->
                 key(tag) {
-                    val onClick = remember(tag, onSelectTag) {
-                        { onSelectTag(tag) }
-                    }
+                    val onClick = tagClickHandlers[tag] ?: {}
                     AnimatedVisibility(
                         visible = showAddComment,
                         enter = fadeIn(
@@ -150,7 +156,11 @@ fun TaggingToolbar(
                     )
                 ) { with(localDensity) { 30.dp.toPx().toInt() } },
             ) {
+                @OptIn(ExperimentalFoundationApi::class)
                 CustomTag(
+                    modifier = Modifier.bringIntoViewResponder(
+                        remember { SuppressBringIntoViewResponder { isEdit } }
+                    ),
                     onlyIcon = tags.isNotEmpty(),
                     editorFocusController = editorFocusController,
                     extendWidth = extendWidth,
@@ -158,5 +168,18 @@ fun TaggingToolbar(
                 )
             }
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private class SuppressBringIntoViewResponder(
+    private val isSuppressed: () -> Boolean,
+) : BringIntoViewResponder {
+    override fun calculateRectForParent(localRect: Rect): Rect {
+        return if (isSuppressed()) Rect.Zero else localRect
+    }
+
+    override suspend fun bringChildIntoView(localRect: () -> Rect?) {
+        // Suppress BringIntoView during edit transition to avoid scroll fighting
     }
 }

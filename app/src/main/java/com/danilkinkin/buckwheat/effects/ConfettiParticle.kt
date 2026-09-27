@@ -44,7 +44,11 @@ data class Particle(
     var shiftXCoefficient: Float = 0f,
 )
 
-fun DrawScope.drawParticle(particle: Particle, debug: Boolean = false) {
+fun DrawScope.drawParticle(
+    particle: Particle,
+    reusablePath: Path? = null,
+    debug: Boolean = false,
+) {
     val halfWidth = particle.hitBox.width / 2
     val halfHeight = particle.hitBox.height / 2
     val centerX = particle.position.x
@@ -68,49 +72,50 @@ fun DrawScope.drawParticle(particle: Particle, debug: Boolean = false) {
     val rotateAltGlobalY = sin(radianGlobalY).toFloat()
     val rotateAltGlobalZ = sin(radianGlobalZ).toFloat()
 
+    val path = reusablePath ?: Path()
+    path.reset()
+    particle.path.forEachIndexed { index, point ->
+        val xRaw = (point.x - halfWidth)
+        val yRaw = (point.y - halfHeight)
+
+        val xRRaw = xRaw * rotateZ + yRaw * rotateAltZ
+        val yRRaw = yRaw * rotateZ - xRaw * rotateAltZ
+
+        val xRel = xRRaw * rotateY * rotateGlobalY + yRRaw * rotateAltX * rotateAltGlobalY
+        val yRel = yRRaw * rotateX * rotateGlobalX  + xRRaw * rotateAltY * rotateAltGlobalX
+
+        val x = centerX + xRel * rotateGlobalZ + yRel * rotateAltGlobalZ
+        val y = centerY + yRel * rotateGlobalZ - xRel * rotateAltGlobalZ
+
+        if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+
+        if (debug) {
+            drawCircle(
+                color = Color.Black,
+                radius = 6f,
+                center = Offset(centerX + xRaw, centerY)
+            )
+            drawIntoCanvas { canvas ->
+                listOf(
+                    "xRaw = $xRaw",
+                    "yRaw = $yRaw",
+                ).forEachIndexed { debugIndex, string ->
+                    canvas.nativeCanvas.drawText(
+                        string,
+                        x,
+                        y + 24.sp.value * (debugIndex + 1),
+                        textPaint
+                    )
+                }
+            }
+        }
+    }
+    path.close()
+
     drawPath(
         color = (if (rotateY > 0f && rotateX > 0f && rotateGlobalY > 0f && rotateGlobalX > 0f) particle.color else particle.bSideColor)
             .copy(alpha = particle.alpha),
-        path = Path().apply {
-            particle.path.forEachIndexed { index, point ->
-                val xRaw = (point.x - halfWidth)
-                val yRaw = (point.y - halfHeight)
-
-                val xRRaw = xRaw * rotateZ + yRaw * rotateAltZ
-                val yRRaw = yRaw * rotateZ - xRaw * rotateAltZ
-
-                val xRel = xRRaw * rotateY * rotateGlobalY + yRRaw * rotateAltX * rotateAltGlobalY
-                val yRel = yRRaw * rotateX * rotateGlobalX  + xRRaw * rotateAltY * rotateAltGlobalX
-
-                val x = centerX + xRel * rotateGlobalZ + yRel * rotateAltGlobalZ
-                val y = centerY + yRel * rotateGlobalZ - xRel * rotateAltGlobalZ
-
-                if (index == 0) moveTo(x, y) else lineTo(x, y)
-
-                if (debug) {
-                    drawCircle(
-                        color = Color.Black,
-                        radius = 6f,
-                        center = Offset(centerX + xRaw, centerY)
-                    )
-                    drawIntoCanvas { canvas ->
-                        listOf(
-                            "xRaw = $xRaw",
-                            "yRaw = $yRaw",
-                        ).forEachIndexed { index, string ->
-                            canvas.nativeCanvas.drawText(
-                                string,
-                                x,
-                                y + 24.sp.value * (index + 1),
-                                textPaint
-                            )
-                        }
-                    }
-                }
-            }
-
-            close()
-        },
+        path = path,
     )
 
     if (debug) {

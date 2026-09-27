@@ -99,7 +99,7 @@ fun Wallet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                    .padding(vertical = com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem.Spacing.s, horizontal = com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem.Spacing.s),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -123,7 +123,7 @@ fun Wallet(
                     } else {
                         stringResource(R.string.wallet_title)
                     },
-                    style = MaterialTheme.typography.titleLarge,
+                    style = com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem.Typography.drawerTitle,
                 )
                 Spacer(Modifier.weight(1F))
                 if (!isEdit) {

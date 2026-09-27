@@ -79,8 +79,7 @@ fun ViewerHistory(
                 ) {
                     Text(
                         text = stringResource(R.string.history_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = BuckwheatDesignSystem.Typography.drawerTitle,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }

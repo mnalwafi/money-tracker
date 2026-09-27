@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -48,13 +49,13 @@ class DashboardViewModel @Inject constructor(
     )
 
     private val budgetSnapshotFlow: Flow<BudgetDataOrNull> = combine(
-        spendsRepository.getDailyBudget(),
-        spendsRepository.getSpentFromDailyBudget(),
-        spendsRepository.getBudget(),
-        spendsRepository.getSpent(),
-        spendsRepository.getFinishPeriodDate(),
-        spendsRepository.getReservedRecurringFlow(),
-        spendsRepository.getCurrency(),
+        spendsRepository.getDailyBudget().distinctUntilChanged(),
+        spendsRepository.getSpentFromDailyBudget().distinctUntilChanged(),
+        spendsRepository.getBudget().distinctUntilChanged(),
+        spendsRepository.getSpent().distinctUntilChanged(),
+        spendsRepository.getFinishPeriodDate().distinctUntilChanged(),
+        spendsRepository.getReservedRecurringFlow().distinctUntilChanged(),
+        spendsRepository.getCurrency().distinctUntilChanged(),
     ) { args: Array<Any?> ->
         BudgetDataOrNull(
             dailyBudget = args[0] as BigDecimal,
@@ -65,7 +66,7 @@ class DashboardViewModel @Inject constructor(
             reservedRecurring = args[5] as BigDecimal,
             currency = args[6] as ExtendCurrency,
         )
-    }
+    }.distinctUntilChanged()
 
     private data class BudgetDataOrNull(
         val dailyBudget: BigDecimal,
@@ -81,9 +82,9 @@ class DashboardViewModel @Inject constructor(
 
     val uiState: StateFlow<DashboardUiState> = combine(
         budgetSnapshotFlow,
-        recurringTransactionRepository.getDueSoon(7),
-        pendingExpenseRepository.pendingExpenses.map { it.size },
-        transactionDao.getRecentActivity(5),
+        recurringTransactionRepository.getDueSoon(7).distinctUntilChanged(),
+        pendingExpenseRepository.pendingExpenses.map { it.size }.distinctUntilChanged(),
+        transactionDao.getRecentActivity(5).distinctUntilChanged(),
     ) { budgetData, upcoming, pendingCount, recentActivity ->
         val today = getCurrentDateUseCase()
         val isBudgetActive = budgetData.finishPeriodDate != null

@@ -124,11 +124,14 @@ Cards across all drawers (specifically Dashboard and Recurring & Subscriptions) 
 - Number sanitization is performed via `fixedNumberString(input)` to preserve valid numeric structures.
 - Internal state holds raw unformatted `BigDecimal` or clean digits, while the display presents formatted thousands separators and localized currency symbols.
 
-### Form Field Dimensions:
-- Standard Outlined Field Height: `56.dp`.
+### Form Field & Control Dimensions:
+- Standard Outlined Field Height: `56.dp` (`BuckwheatDesignSystem.Controls.inputHeight`).
 - Corner Radius: `RoundedCornerShape(14.dp)` (`BuckwheatDesignSystem.Shapes.input`).
-- Primary Action Button Height: `52.dp`, `RoundedCornerShape(16.dp)`.
-- Secondary / Dialog Button Height: `40.dp`–`48.dp`, `RoundedCornerShape(12.dp)`–`14.dp`.
+- Primary Action Button Height: `52.dp` (`BuckwheatDesignSystem.Controls.buttonHeight`), `RoundedCornerShape(16.dp)` (`BuckwheatDesignSystem.Shapes.button`).
+- Medium / Secondary Action Button Height: `48.dp` (`BuckwheatDesignSystem.Controls.mediumButtonHeight`).
+- Small / Compact Button Height: `40.dp` (`BuckwheatDesignSystem.Controls.smallButtonHeight`).
+- Standard Icon Scale: `16.dp` (small), `20.dp` (medium), `24.dp` (large), `32.dp` (xlarge), `64.dp` (hero empty state).
+- Elevation Levels: `0.dp` (none), `2.dp` (low), `4.dp` (card), `16.dp` (sheet) (`BuckwheatDesignSystem.Elevation.*`).
 
 ---
 

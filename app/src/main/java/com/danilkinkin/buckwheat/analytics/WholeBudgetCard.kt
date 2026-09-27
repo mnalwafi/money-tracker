@@ -237,6 +237,8 @@ fun Arrow(
     modifier: Modifier = Modifier,
     tint: Color = LocalContentColor.current,
 ) {
+    val trianglePath = remember { Path() }
+
     Canvas(modifier = modifier) {
         val width = this.size.width
         val height = this.size.height
@@ -245,22 +247,18 @@ fun Arrow(
         val thickness = 6
         val thicknessHalf = thickness / 2
 
-        val trianglePath = Path().let {
-            it.moveTo(11f, heightHalf - thicknessHalf)
-            it.lineTo(width - 22.4f, heightHalf - thicknessHalf)
-            it.lineTo(width - 37.4f, heightHalf - 18)
-            it.lineTo(width - 33, heightHalf - 22.4f)
-            it.lineTo(width - 10.5f, heightHalf)
-            it.lineTo(width - 33, heightHalf + 22.4f)
-            it.lineTo(width - 37.4f, heightHalf + 18)
-            it.lineTo(width - 22.4f, heightHalf + thicknessHalf)
-            it.lineTo(width - 22.4f, heightHalf + thicknessHalf)
-            it.lineTo(11f, heightHalf + thicknessHalf)
-
-            it.close()
-
-            it
-        }
+        trianglePath.reset()
+        trianglePath.moveTo(11f, heightHalf - thicknessHalf)
+        trianglePath.lineTo(width - 22.4f, heightHalf - thicknessHalf)
+        trianglePath.lineTo(width - 37.4f, heightHalf - 18)
+        trianglePath.lineTo(width - 33, heightHalf - 22.4f)
+        trianglePath.lineTo(width - 10.5f, heightHalf)
+        trianglePath.lineTo(width - 33, heightHalf + 22.4f)
+        trianglePath.lineTo(width - 37.4f, heightHalf + 18)
+        trianglePath.lineTo(width - 22.4f, heightHalf + thicknessHalf)
+        trianglePath.lineTo(width - 22.4f, heightHalf + thicknessHalf)
+        trianglePath.lineTo(11f, heightHalf + thicknessHalf)
+        trianglePath.close()
 
         drawPath(
             path = trianglePath,

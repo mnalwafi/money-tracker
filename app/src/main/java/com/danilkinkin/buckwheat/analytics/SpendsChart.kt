@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -83,6 +84,8 @@ fun SpendsChart(
         Triple(null, 0, spends.size)
     }
 
+    val trianglePath = remember { Path() }
+
     Canvas(modifier = modifier) {
         val width = this.size.width
         val height = this.size.height
@@ -90,47 +93,42 @@ fun SpendsChart(
         val widthWithPaddings = width - startOffset - endOffset
         val size = (lastShowIndex - firstShowIndex - 1).toFloat().coerceAtLeast(1f)
 
-        val trianglePath = Path().let {
-            var lastY = 0f
+        trianglePath.reset()
+        var lastY = 0f
 
-            spends.subList(firstShowIndex, lastShowIndex).forEachIndexed { index, spent ->
-                val scale = if (range.isZero()) {
-                    0.5f
-                } else {
-                    spent.value
-                        .minus(minSpentValue)
-                        .divide(range, 2, RoundingMode.HALF_EVEN)
-                        .toFloat()
-                }
-
-                if (index == 0) {
-                    lastY = topOffset + heightWithPaddings * (1 - scale)
-                    it.moveTo(
-                        0f,
-                        lastY
-                    )
-                }
-
-                it.cubicTo(
-                    startOffset + widthWithPaddings * ((index - 0.5f).coerceAtLeast(0f) / size),
-                    lastY,
-                    startOffset + widthWithPaddings * ((index - 0.5f).coerceAtLeast(0f) / size),
-                    topOffset + heightWithPaddings * (1 - scale),
-                    startOffset + widthWithPaddings * (index / size),
-                    topOffset + heightWithPaddings * (1 - scale),
-                )
-
-                lastY = topOffset + heightWithPaddings * (1 - scale)
+        spends.subList(firstShowIndex, lastShowIndex).forEachIndexed { index, spent ->
+            val scale = if (range.isZero()) {
+                0.5f
+            } else {
+                spent.value
+                    .minus(minSpentValue)
+                    .divide(range, 2, RoundingMode.HALF_EVEN)
+                    .toFloat()
             }
 
+            if (index == 0) {
+                lastY = topOffset + heightWithPaddings * (1 - scale)
+                trianglePath.moveTo(
+                    0f,
+                    lastY
+                )
+            }
 
-            it.lineTo(width, lastY)
+            trianglePath.cubicTo(
+                startOffset + widthWithPaddings * ((index - 0.5f).coerceAtLeast(0f) / size),
+                lastY,
+                startOffset + widthWithPaddings * ((index - 0.5f).coerceAtLeast(0f) / size),
+                topOffset + heightWithPaddings * (1 - scale),
+                startOffset + widthWithPaddings * (index / size),
+                topOffset + heightWithPaddings * (1 - scale),
+            )
 
-            it.lineTo(width, height)
-            it.lineTo(0f, height)
-
-            it
+            lastY = topOffset + heightWithPaddings * (1 - scale)
         }
+
+        trianglePath.lineTo(width, lastY)
+        trianglePath.lineTo(width, height)
+        trianglePath.lineTo(0f, height)
 
 
         val chartColors = if (markedTransaction != null) {

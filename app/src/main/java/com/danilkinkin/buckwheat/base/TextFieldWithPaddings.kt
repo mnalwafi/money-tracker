@@ -275,7 +275,7 @@ fun TextFieldWithPaddings(
                         onChangeValue(lastTextValue)
                     }
                 },
-                onTextLayout = { restoreScrollPosition() },
+                onTextLayout = { if (!isImeAnimating) restoreScrollPosition() },
                 textStyle = textStyle.copy(textAlign = TextAlign.End),
                 singleLine = true,
                 cursorBrush = cursorBrush,

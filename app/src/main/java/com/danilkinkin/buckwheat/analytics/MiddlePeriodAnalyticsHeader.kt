@@ -35,7 +35,7 @@ fun MiddlePeriodAnalyticsHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 8.dp),
+                .padding(vertical = com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem.Spacing.s, horizontal = com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem.Spacing.s),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -51,7 +51,7 @@ fun MiddlePeriodAnalyticsHeader(
             Spacer(Modifier.weight(1F))
             Text(
                 text = stringResource(R.string.analytics_title),
-                style = MaterialTheme.typography.titleLarge,
+                style = com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem.Typography.drawerTitle,
             )
             Spacer(Modifier.weight(1F))
             Spacer(Modifier.width(48.dp))

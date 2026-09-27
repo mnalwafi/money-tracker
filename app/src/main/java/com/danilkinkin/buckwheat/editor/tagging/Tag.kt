@@ -25,20 +25,17 @@ data class TagItem(val name: String)
 @Composable
 fun Tag(
     value: String,
-    onClick: () -> Unit = {},
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val currentOnClick = rememberUpdatedState(onClick)
-
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier
+        modifier = modifier
             .height(44.dp)
             .clip(CircleShape)
-            .clickable {
-                currentOnClick.value()
-            }
+            .clickable(onClick = onClick)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -57,6 +54,6 @@ fun Tag(
 @Composable
 private fun Preview() {
     BuckwheatTheme {
-        Tag("Test tag")
+        Tag("Test tag", onClick = {})
     }
 }

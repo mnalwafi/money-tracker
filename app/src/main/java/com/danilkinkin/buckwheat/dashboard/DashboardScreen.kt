@@ -33,8 +33,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -278,7 +280,7 @@ private fun HeroAllowanceCard(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            border = BuckwheatDesignSystem.Colors.cardBorder,
         ) {
             Column(
                 modifier = Modifier
@@ -321,7 +323,7 @@ private fun HeroAllowanceCard(
                     onClick = onOpenWallet,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(BuckwheatDesignSystem.Controls.mediumButtonHeight),
                     shape = BuckwheatDesignSystem.Shapes.button,
                 ) {
                     Text(
@@ -395,6 +397,11 @@ private fun HeroAllowanceCard(
                         .fillMaxWidth()
                 ) {
                     // Animated Wavy Liquid Fill (Matching Wallet's RestAndSpentBudgetCard)
+                    val reusableWavePath = remember { Path() }
+                    val wavePeriod = 70.dp
+                    val waveAmplitude = 3.5.dp * percent.clamp(0.96f, 1f)
+                    val waveColor = harmonizedColor.main
+
                     Box(
                         Modifier
                             .fillMaxHeight()
@@ -402,16 +409,27 @@ private fun HeroAllowanceCard(
                     ) {
                         Box(
                             modifier = Modifier
-                                .background(
-                                    harmonizedColor.main,
-                                    shape = WavyShape(
-                                        period = 70.dp,
-                                        amplitude = 3.5.dp * percent.clamp(0.96f, 1f),
-                                        shift = shift.value,
-                                    ),
-                                )
                                 .fillMaxHeight()
-                                .fillMaxWidth(percent),
+                                .fillMaxWidth(percent)
+                                .drawBehind {
+                                    val halfPeriod = wavePeriod.toPx() / 2
+                                    val amp = waveAmplitude.toPx()
+                                    val currentShift = shift.value
+                                    reusableWavePath.reset()
+                                    reusableWavePath.moveTo(0f, 0f)
+                                    reusableWavePath.lineTo(size.width - amp, -halfPeriod * 2.5f + halfPeriod * 2 * currentShift)
+                                    repeat(kotlin.math.ceil(size.height / halfPeriod + 3).toInt()) { i ->
+                                        reusableWavePath.relativeQuadraticBezierTo(
+                                            dx1 = 2 * amp * (if (i % 2 == 0) 1 else -1),
+                                            dy1 = halfPeriod / 2,
+                                            dx2 = 0f,
+                                            dy2 = halfPeriod,
+                                        )
+                                    }
+                                    reusableWavePath.lineTo(0f, size.height)
+                                    reusableWavePath.close()
+                                    drawPath(reusableWavePath, waveColor)
+                                },
                         )
                     }
 
@@ -495,7 +513,7 @@ private fun HeroAllowanceCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(BuckwheatDesignSystem.Shapes.small)
                                 .clickable(onClick = onOpenWallet),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
@@ -566,7 +584,7 @@ private fun ActionBanner(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+            border = BuckwheatDesignSystem.Colors.cardBorder,
         ) {
             Row(
                 modifier = Modifier
@@ -608,7 +626,7 @@ private fun ActionBanner(
 
                 Button(
                     onClick = onReview,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = BuckwheatDesignSystem.Shapes.medium,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -663,11 +681,11 @@ private fun UpcomingBillsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onManageRecurring),
-                shape = RoundedCornerShape(20.dp),
+                shape = BuckwheatDesignSystem.Shapes.card,
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                border = BuckwheatDesignSystem.Colors.cardBorder,
             ) {
                 Row(
                     modifier = Modifier
@@ -732,7 +750,7 @@ private fun UpcomingBillCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        border = BuckwheatDesignSystem.Colors.cardBorder,
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             // Due badge & avatar row
@@ -847,7 +865,7 @@ private fun RecentActivitySection(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                border = BuckwheatDesignSystem.Colors.cardBorder,
             ) {
                 Text(
                     text = stringResource(R.string.dashboard_recent_no_transactions),
@@ -863,20 +881,22 @@ private fun RecentActivitySection(
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                border = BuckwheatDesignSystem.Colors.cardBorder,
             ) {
                 Column(modifier = Modifier.padding(vertical = 6.dp)) {
                     recentTransactions.forEachIndexed { index, transaction ->
-                        RecentTransactionRow(
-                            transaction = transaction,
-                            currency = currency,
-                            onClick = { onEditTransaction(transaction) },
-                        )
-                        if (index < recentTransactions.size - 1) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                        androidx.compose.runtime.key(transaction.uid) {
+                            RecentTransactionRow(
+                                transaction = transaction,
+                                currency = currency,
+                                onClick = { onEditTransaction(transaction) },
                             )
+                            if (index < recentTransactions.size - 1) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                                )
+                            }
                         }
                     }
                 }
@@ -985,8 +1005,8 @@ private fun QuickAddBottomBar(
                 onClick = onQuickAdd,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(BuckwheatDesignSystem.Controls.buttonHeight),
+                shape = BuckwheatDesignSystem.Shapes.button,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,

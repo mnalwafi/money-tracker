@@ -232,12 +232,14 @@ fun Confetti(
     val diffTimestamp = (timeStamp - lastTimeStamp)
     lastTimeStamp = timeStamp
 
+    val reusablePath = remember { Path() }
+
     Canvas(modifier = modifier) {
         val width = this.size.width
         val height = this.size.height
 
         particles.forEach {
-            drawParticle(it)
+            drawParticle(it, reusablePath)
 
             val shiftX = sin(timeStamp * timeSpeed * abs(it.shiftXCoefficient)) * it.shiftXCoefficient
 

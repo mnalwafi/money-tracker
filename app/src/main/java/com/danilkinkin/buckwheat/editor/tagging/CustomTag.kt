@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -93,6 +94,7 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun CustomTag(
+    modifier: Modifier = Modifier,
     spendsViewModel: SpendsViewModel = hiltViewModel(),
     appViewModel: AppViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
@@ -157,7 +159,7 @@ fun CustomTag(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
+            modifier = modifier
                 .menuAnchor()
                 .clip(CircleShape)
                 .then(if (isEdit) {
@@ -168,7 +170,6 @@ fun CustomTag(
                         focusManager.clearFocus()
                         isEdit = true
                         onEdit(true)
-                        appViewModel.showSystemKeyboard.value = true
                         appViewModel.lockDraggable.value = true
                     }
                 })
@@ -202,15 +203,25 @@ fun CustomTag(
                         )
                     }
                 ) { targetIsEdit ->
-                    if (this.transition.currentState == this.transition.targetState && targetIsEdit) {
+                    val isTransitionSettled = targetIsEdit && this.transition.currentState == this.transition.targetState
+
+                    if (isTransitionSettled) {
                         renderPopup = true
+                    }
+
+                    LaunchedEffect(isTransitionSettled) {
+                        if (isTransitionSettled) {
+                            appViewModel.showSystemKeyboard.value = true
+                        }
                     }
 
                     if (targetIsEdit) {
                         CommentEditor(
+                            modifier = Modifier.width(extendWidth),
                             value = value,
                             onChange = { value = it },
                             onApply = { close() },
+                            shouldFocus = isTransitionSettled,
                         )
                     } else if (!onlyIcon || value.text.isNotEmpty()) {
                         Text(
@@ -272,7 +283,7 @@ fun CustomTag(
                                             dismissEvent.value = true
                                         }
                                     },
-                                shape = RoundedCornerShape(16.dp)
+                                shape = BuckwheatDesignSystem.Shapes.button
                             ) {
                                 LazyColumn(
                                     userScrollEnabled = true,
@@ -372,6 +383,7 @@ fun CommentEditor(
     value: TextFieldValue,
     onChange: (comment: TextFieldValue) -> Unit,
     onApply: () -> Unit,
+    shouldFocus: Boolean = true,
 ) {
     var focusIsTracking by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -432,9 +444,11 @@ fun CommentEditor(
         ),
     )
 
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-        focusIsTracking = true
+    LaunchedEffect(shouldFocus) {
+        if (shouldFocus) {
+            focusRequester.requestFocus()
+            focusIsTracking = true
+        }
     }
 }
 

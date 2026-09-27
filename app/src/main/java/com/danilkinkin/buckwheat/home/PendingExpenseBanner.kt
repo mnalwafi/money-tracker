@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -72,16 +73,16 @@ fun PendingExpenseBanner(
             Card(
                 modifier = modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .padding(horizontal = BuckwheatDesignSystem.Spacing.screenPadding, vertical = BuckwheatDesignSystem.Spacing.s),
+                shape = BuckwheatDesignSystem.Shapes.button,
                 colors = CardDefaults.cardColors(
                     containerColor = if (isIncome) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = if (isIncome) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = BuckwheatDesignSystem.Elevation.card),
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(BuckwheatDesignSystem.Spacing.cardPadding)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -98,14 +99,14 @@ fun PendingExpenseBanner(
                                 modifier = Modifier.size(24.dp),
                                 tint = if (isIncome) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                             )
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(BuckwheatDesignSystem.Spacing.s))
                             Text(
                                 text = stringResource(if (isIncome) R.string.pending_income_banner_title else R.string.pending_expense_banner_title),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isIncome) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                             )
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(BuckwheatDesignSystem.Spacing.s))
                             Text(
                                 text = stringResource(R.string.ai_confidence_badge, confidencePct),
                                 style = MaterialTheme.typography.labelSmall,
@@ -142,7 +143,7 @@ fun PendingExpenseBanner(
                             )
                         },
                         style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        modifier = Modifier.padding(vertical = BuckwheatDesignSystem.Spacing.s),
                     )
 
                     Row(
@@ -159,7 +160,7 @@ fun PendingExpenseBanner(
                                 viewModel.pendingExpenseRepository.removePendingExpense(latestExpense.id)
                                 onEditExpense()
                             },
-                            modifier = Modifier.padding(end = 8.dp),
+                            modifier = Modifier.padding(end = BuckwheatDesignSystem.Spacing.s),
                         ) {
                             Text(text = stringResource(R.string.pending_expense_edit))
                         }

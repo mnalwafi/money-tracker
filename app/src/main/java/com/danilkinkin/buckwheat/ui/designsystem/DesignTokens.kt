@@ -50,6 +50,7 @@ object BuckwheatDesignSystem {
 
     object Shapes {
         val small: Shape = RoundedCornerShape(8.dp)
+        val chip: Shape = RoundedCornerShape(8.dp)
         val medium: Shape = RoundedCornerShape(12.dp)
         val input: Shape = RoundedCornerShape(14.dp)
         val button: Shape = RoundedCornerShape(16.dp)
@@ -58,14 +59,28 @@ object BuckwheatDesignSystem {
         val cardItem: Shape = RoundedCornerShape(22.dp)
         val sheet: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
         val pill: Shape = CircleShape
+        val badge: Shape = CircleShape
     }
 
     object Controls {
         val inputHeight: Dp = 56.dp
         val buttonHeight: Dp = 52.dp
+        val mediumButtonHeight: Dp = 48.dp
         val smallButtonHeight: Dp = 40.dp
         val dragHandleWidth: Dp = 36.dp
         val dragHandleHeight: Dp = 4.dp
+        val iconSmall: Dp = 16.dp
+        val iconMedium: Dp = 20.dp
+        val iconLarge: Dp = 24.dp
+        val iconXLarge: Dp = 32.dp
+        val iconHero: Dp = 64.dp
+    }
+
+    object Elevation {
+        val none: Dp = 0.dp
+        val low: Dp = 2.dp
+        val card: Dp = 4.dp
+        val sheet: Dp = 16.dp
     }
 
     object Typography {

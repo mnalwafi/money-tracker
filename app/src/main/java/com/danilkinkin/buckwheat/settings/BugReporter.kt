@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -120,7 +121,7 @@ ${collectEnvInfo(context)}
 fun Button(modifier: Modifier = Modifier, icon: Painter, text: String, onClick: () -> Unit) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = BuckwheatDesignSystem.Shapes.button,
         colors = CardDefaults.cardColors(
             containerColor = colorEditor,
             contentColor = colorOnEditor,
@@ -129,7 +130,7 @@ fun Button(modifier: Modifier = Modifier, icon: Painter, text: String, onClick: 
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(BuckwheatDesignSystem.Spacing.cardPadding)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,

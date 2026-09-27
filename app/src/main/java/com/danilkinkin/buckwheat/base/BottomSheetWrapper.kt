@@ -109,16 +109,20 @@ fun BottomSheetWrapper(
         confirmChange = { state.targetValue !== ModalBottomSheetValue.Hidden },
     )
 
-    val statusBarFillProgress = if (statusBarHeight == 0.dp) {
-        0F
-    } else {
-        with(localDensity) {
-            max(
-                statusBarHeight - state.offset.value.roundToInt().toDp(),
-                0.toDp(),
-            )
-        } / statusBarHeight
-    }.coerceIn(0f, 1f)
+    val statusBarFillProgress by remember(statusBarHeight, localDensity) {
+        androidx.compose.runtime.derivedStateOf {
+            if (statusBarHeight == 0.dp) {
+                0F
+            } else {
+                with(localDensity) {
+                    max(
+                        statusBarHeight - state.offset.value.roundToInt().toDp(),
+                        0.toDp(),
+                    )
+                } / statusBarHeight
+            }.coerceIn(0f, 1f)
+        }
+    }
 
     val focusManager = LocalFocusManager.current
 

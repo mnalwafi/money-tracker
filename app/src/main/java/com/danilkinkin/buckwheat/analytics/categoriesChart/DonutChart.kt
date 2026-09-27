@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -36,49 +37,53 @@ fun DonutChart(
         with(localDensity) { chartPadding.calculateStartPadding(layoutDirection).toPx() }
     val endOffset = with(localDensity) { chartPadding.calculateEndPadding(layoutDirection).toPx() }
 
+    val minSweepAngle = 28f
+    val itemAngles = remember(items) {
+        if (items.isEmpty()) {
+            emptyList()
+        } else {
+            val total = items.map { it.amount }.reduce { acc, next -> acc + next }
+            var angles = items.map {
+                it.amount
+                    .divide(total, 5, RoundingMode.HALF_DOWN)
+                    .multiply(360.toBigDecimal())
+                    .toFloat()
+            }
+
+            val shareAngle = angles
+                .filter { it < minSweepAngle }
+                .map { minSweepAngle - it }
+                .fold(0f) { acc, next -> acc + next }
+            val splitItems = angles.filter { it > minSweepAngle }.toMutableList()
+
+            angles.map { angle ->
+                if (angle < minSweepAngle) {
+                    minSweepAngle
+                } else if (angle > minSweepAngle && splitItems.isNotEmpty()) {
+                    angle - shareAngle / splitItems.size
+                } else {
+                    angle
+                }
+            }
+        }
+    }
+
     Canvas(modifier = modifier) {
         val width = this.size.width
         val height = this.size.height
         val heightWithPaddings = height - topOffset - bottomOffset
         val widthWithPaddings = width - startOffset - endOffset
 
-        val total = items.map { it.amount }.reduce { acc, next -> acc + next }
         var offset = 0f
 
         val gap = 0f
         val halfGap = gap / 2f
         val strokeWidth = 28f
         val halfStrokeWidth = strokeWidth / 2f
-        val minSweepAngle = 28f
         val offsetAngle = -90f
 
-        var itemAngles = items.map {
-            it.amount
-                .divide(total, 5, RoundingMode.HALF_DOWN)
-                .multiply(360.toBigDecimal())
-                .toFloat()
-        }
-
-        val shareAngle = itemAngles
-            .filter { it < minSweepAngle }
-            .map { minSweepAngle - it }
-            .fold(0f) { acc, next -> acc + next }
-        val splitItems = itemAngles.filter { it > minSweepAngle }.toMutableList()
-
-        itemAngles = itemAngles.map { angle ->
-            if (angle < minSweepAngle) {
-                return@map minSweepAngle
-            }
-
-            if (angle > minSweepAngle) {
-                return@map angle - shareAngle / splitItems.size
-            }
-
-            angle
-        }
-
         items.forEachIndexed { index, tag ->
-            val sweepAngle = itemAngles[index]
+            val sweepAngle = itemAngles.getOrElse(index) { 0f }
 
             drawArc(
                 tag.color?.main ?: Color.Black,
