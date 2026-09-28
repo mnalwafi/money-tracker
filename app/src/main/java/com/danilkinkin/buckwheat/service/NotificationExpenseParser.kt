@@ -34,8 +34,7 @@ class NotificationExpenseParser @Inject constructor() {
         )
 
         private val PROMO_PATTERN = Pattern.compile(
-            """\b(cashback|discount|diskon|voucher|promo|special\s+offer|penawaran\s+spesial|selamat\s+anda\s+mendapatkan|claim\s+your|win|congratulations)\b""",
-            Pattern.CASE_INSENSITIVE
+            """(?i)(?:[🎁🎉👉]|\b(cashback|discount|diskon|voucher|promo|special\s+offer|penawaran\s+spesial|selamat\s+anda\s+mendapatkan|claim(\s+your)?|klaim|diklaim|siap\s+diklaim|bisa\s+diklaim|hadiah\s+lainnya|dapatkan\s+hadiah|bagi[-\s]?bagi\s+hadiah|koin\s+dan\s+hadiah|koin\s+siap|bonus\s+koin|gratis\s+koin|cek\s+(?:sekarang|👉|link|promo|detail|disini|di\s+sini)|klik\s+(?:di\s+sini|disini|link)|tap\s+untuk|bisa\s+diklaim\s+dengan\s+transaksi|win|congratulations)\b)"""
         )
 
         // Expense / debit intent triggers

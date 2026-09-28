@@ -17,7 +17,8 @@ const FAILED_TRANSACTION_PATTERNS = [
 
 const CONVERSATIONAL_CHAT_PATTERNS = [
     /\b(rekening|rek)(\s+\w+)?\s+(aku|saya|gue|gw|kamu|lo|lu)\b/i,
-    /\b(aku|kamu|gue|gw|lo|lu)\b/i,
+    /\b(gue|gw|lo|lu)\b/i,
+    /\b(ke\s+(aku|kamu|gue|saya)|buat\s+(aku|kamu|gue|saya))\b/i,
     /\b(tolong|please|pls|jangan\s+lupa|ingetin|bisa\s+transfer|bisa\s+bayar|udah\s+bayar|udah\s+transfer)\b/i,
     /\b(transfer\s+ke\s+(aku|gue|saya)|kirim\s+ke\s+(aku|gue|saya)|bayar\s+ke\s+(aku|gue|saya))\b/i,
     /\b(pay\s+me|send\s+me|wire\s+me|transfer\s+to\s+me|my\s+account|remind\s+me\s+to)\b/i,
@@ -28,10 +29,14 @@ const CONVERSATIONAL_CHAT_PATTERNS = [
 
 const PROMO_PATTERNS = [
     /\b(cashback|discount|coupon|diskon|promo|voucher)\b/i,
-    /\b(claim\s+your\s+(offer|reward|discount|voucher)?)\b/i,
+    /\b(claim(\s+your)?|klaim|diklaim|siap\s+diklaim|bisa\s+diklaim)\b/i,
+    /\b(hadiah\s+lainnya|dapatkan\s+hadiah|bagi[-\s]?bagi\s+hadiah|koin\s+dan\s+hadiah|koin\s+siap|bonus\s+koin|gratis\s+koin)\b/i,
     /\b(penawaran\s+spesial|selamat\s+anda\s+mendapatkan|menangkan|win\s+up\s+to|special\s+offer)\b/i,
-    /\b(dapatkan\s+(promo|diskon|cashback|voucher|gratis|hadiah|penawaran)?)\b/i,
+    /\b(dapatkan\s+(promo|diskon|cashback|voucher|gratis|hadiah|penawaran|koin)?)\b/i,
     /\b(dan\s+dapatkan|and\s+get|gratis\s+ongkir|free\s+shipping|flash\s+sale)\b/i,
+    /\b(cek\s+(sekarang|👉|link|promo|detail|disini|di\s+sini)|klik\s+(di\s+sini|disini|link)|tap\s+untuk|yuk\s+(cek|klaim|transaksi|belanja|serbu))\b/i,
+    /\b(bisa\s+diklaim\s+dengan\s+transaksi|(?:dengan|lakukan|setiap|untuk)\s+transaksi\s+.*?(?:klaim|dapatkan|menangkan))\b/i,
+    /[🎁🎉👉]/,
     /\b(login\s+detected|new\s+device\s+login|security\s+alert|password\s+changed)\b/i,
     /\b(login\s+dari\s+perangkat\s+baru|ganti\s+kata\s+sandi)\b/i
 ];
@@ -203,7 +208,8 @@ const noise = [
     "bayar 200.000 ke rekening bri aku sekarang",
     "bayar 250.000 sekarang dan dapatkan promo shopee terbaru",
     "tolong transfer 50.000 ya bro",
-    "can you pay $20 for lunch?"
+    "can you pay $20 for lunch?",
+    "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉"
 ];
 for (const n of noise) {
     const res = classify(n);
@@ -229,9 +235,12 @@ assert.strictEqual(KNOWN_FINANCE_PACKAGES.has("com.bri.brimo"), true);
 console.log('✓ BRImo and Indonesian banking packages successfully whitelisted in KNOWN_FINANCE_PACKAGES!');
 
 // 3. Shorthand multiplier extraction
+const NON_MONETARY_REWARD_PATTERN = /\b(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\s*(?:sebesar\s+)?([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\b|\b([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\s*(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\b/gi;
+
 function parseShorthand(text) {
+    const clean = text.replace(NON_MONETARY_REWARD_PATTERN, ' ');
     const SHORTHAND_PATTERN = /(?:([a-zA-Z$€£¥₹]+)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)\b/i;
-    const m = text.match(SHORTHAND_PATTERN);
+    const m = clean.match(SHORTHAND_PATTERN);
     if (!m) return null;
     const base = parseFloat(m[2].replace(',', '.'));
     const mult = m[3].toLowerCase();
@@ -254,7 +263,8 @@ assert.strictEqual(parseShorthand("Pembayaran sebesar 200k ke Google Pay berhasi
 assert.strictEqual(parseShorthand("1.5jt"), "1500000.00");
 assert.strictEqual(parseShorthand("50rb"), "50000.00");
 assert.strictEqual(parseAmountString("13.000,00", "Rp"), "13000.00");
-console.log('✓ All deterministic number formats and shorthand multipliers parsed perfectly!');
+assert.strictEqual(parseShorthand("100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya"), null);
+console.log('✓ All deterministic number formats and shorthand multipliers parsed perfectly, non-monetary coins ignored!');
 
 // Test 5: Successful shorthand payment
 const successPayment = "Pembayaran sebesar 200k ke Google Pay berhasil";

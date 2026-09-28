@@ -65,7 +65,8 @@ class HybridTransactionCaptureTest {
             "Your OTP verification code is 492810. Do not share this code with anyone.",
             "Special discount! Get 50% cashback voucher on your next purchase using code PROMO50.",
             "Security alert: Login detected from a new Windows PC device.",
-            "Selamat Anda memenangkan voucher diskon belanja!"
+            "Selamat Anda memenangkan voucher diskon belanja!",
+            "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉"
         )
 
         for (text in texts) {
@@ -366,5 +367,19 @@ class HybridTransactionCaptureTest {
     fun pipeline_brimoPackageWhitelistedInKnownFinancePackages() {
         assertTrue(HybridTransactionCaptureEngine.KNOWN_FINANCE_PACKAGES.contains("id.co.bri.brimo"))
         assertTrue(HybridTransactionCaptureEngine.KNOWN_FINANCE_PACKAGES.contains("com.bri.brimo"))
+    }
+
+    @Test
+    fun pipeline_shopeeRealPaymentWithCoinReward_extractedAccurately() {
+        val title = "ShopeePay"
+        val text = "Pembayaran Rp 50.000 di Alfamart berhasil. Kamu mendapatkan 50 Koin Shopee."
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.EXPENSE, classification.type)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = false)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("50000.00"), extracted?.amount)
+        assertEquals("Alfamart", extracted?.merchant)
     }
 }

@@ -50,6 +50,9 @@ class DeterministicAmountExtractor @Inject constructor() {
         private val TIME_PATTERN = Regex("""\b\d{1,2}:\d{2}(?::\d{2})?\b""")
         private val CALL_CENTER_PATTERN = Regex("""(?i)\b(?:call\s*center|hubungi|hotline|telp|cs|contact)\b.*?(\d{5,})""")
         private val CARD_MASK_PATTERN = Regex("""(?i)\b(?:ending\s+in|card\s+|rekening\s+|rek\s+|acct?\s+)[xX*0-9]+\b""")
+        private val NON_MONETARY_REWARD_PATTERN = Regex(
+            """(?i)\b(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\s*(?:sebesar\s+)?([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\b|\b([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\s*(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\b"""
+        )
 
         // Expense merchant patterns
         private val EXPENSE_MERCHANT_PATTERNS = listOf(
@@ -112,8 +115,11 @@ class DeterministicAmountExtractor @Inject constructor() {
      * Finds and extracts amount string and currency symbol/code.
      */
     fun extractAmountAndCurrency(content: String): Pair<BigDecimal, String?>? {
+        // Sanitize out loyalty coins, game points, and vouchers before amount extraction (e.g. "100RB Koin", "Koin 100RB", "5000 Poin")
+        val cleanContent = content.replace(NON_MONETARY_REWARD_PATTERN, " ")
+
         // Try prefix pattern first ($15.00, Rp 50.000)
-        val prefixMatcher = PREFIX_AMOUNT_PATTERN.matcher(content)
+        val prefixMatcher = PREFIX_AMOUNT_PATTERN.matcher(cleanContent)
         if (prefixMatcher.find()) {
             val currency = prefixMatcher.group(1)?.trim()
             val rawNum = prefixMatcher.group(2)?.trim()
@@ -126,7 +132,7 @@ class DeterministicAmountExtractor @Inject constructor() {
         }
 
         // Try suffix pattern (15.00 USD, 50.000 IDR)
-        val suffixMatcher = SUFFIX_AMOUNT_PATTERN.matcher(content)
+        val suffixMatcher = SUFFIX_AMOUNT_PATTERN.matcher(cleanContent)
         if (suffixMatcher.find()) {
             val rawNum = suffixMatcher.group(1)?.trim()
             val currency = suffixMatcher.group(2)?.trim()
@@ -139,7 +145,7 @@ class DeterministicAmountExtractor @Inject constructor() {
         }
 
         // Try shorthand pattern with multipliers (e.g. 200k, 200rb, 1.5jt)
-        val shorthandMatcher = SHORTHAND_AMOUNT_PATTERN.matcher(content)
+        val shorthandMatcher = SHORTHAND_AMOUNT_PATTERN.matcher(cleanContent)
         if (shorthandMatcher.find()) {
             val prefixCurrency = shorthandMatcher.group(1)?.trim()
             val rawNum = shorthandMatcher.group(2)?.trim()
@@ -164,7 +170,7 @@ class DeterministicAmountExtractor @Inject constructor() {
         }
 
         // Sanitize content from dates, times, phone numbers, and card numbers before standalone check
-        val sanitized = content
+        val sanitized = cleanContent
             .replace(DATE_PATTERN, " ")
             .replace(TIME_PATTERN, " ")
             .replace(CALL_CENTER_PATTERN, " ")

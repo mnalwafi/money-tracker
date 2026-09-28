@@ -128,4 +128,24 @@ class DeterministicAmountExtractorTest {
         assertEquals(BigDecimal("12000000.00"), result!!.amount)
         assertEquals("Rp", result.currencySymbol)
     }
+
+    @Test
+    fun extract_shopeeCoinPromoNotification_returnsNull() {
+        val notification = "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        org.junit.Assert.assertNull("Loyalty coins/points must not be extracted as financial amount", result)
+    }
+
+    @Test
+    fun extract_shopeePaymentWithCoinReward_extractsOnlyRealMoney() {
+        val notification = "Pembayaran Rp 50.000 di Alfamart berhasil. Kamu mendapatkan 50 Koin Shopee."
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull("Must extract real money payment", result)
+        assertEquals(BigDecimal("50000.00"), result!!.amount)
+        assertEquals("Alfamart", result.merchant)
+    }
 }

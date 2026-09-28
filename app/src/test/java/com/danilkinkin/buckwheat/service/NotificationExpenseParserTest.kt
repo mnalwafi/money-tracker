@@ -180,4 +180,16 @@ class NotificationExpenseParserTest {
         assertEquals("Rp", expense?.currencySymbol)
         assertEquals("QRIS", expense?.merchant)
     }
+
+    @Test
+    fun parse_shopeeCoinPromoNotification_isRejected() {
+        val expense = parser.parse(
+            packageName = "com.shopee.id",
+            title = "100RB Koin Siap Diklaim!🎁",
+            text = "Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉",
+            postTime = 1700000000000L
+        )
+
+        assertNull("Shopee coin promo notification must be rejected", expense)
+    }
 }
