@@ -228,6 +228,13 @@ class PendingExpenseRepository private constructor(
     }
 
     fun removePendingExpense(id: String) {
+        context?.let { ctx ->
+            try {
+                val notificationId = com.danilkinkin.buckwheat.service.ExpenseNotificationHelper.getNotificationIdForExpense(id)
+                androidx.core.app.NotificationManagerCompat.from(ctx).cancel(notificationId)
+            } catch (_: Exception) {}
+        }
+
         _pendingExpenses.update { current ->
             val updated = current.filterNot { it.id == id }
             saveToDisk(updated)
@@ -240,6 +247,14 @@ class PendingExpenseRepository private constructor(
     }
 
     fun clearAll() {
+        context?.let { ctx ->
+            try {
+                for (item in _pendingExpenses.value) {
+                    val notificationId = com.danilkinkin.buckwheat.service.ExpenseNotificationHelper.getNotificationIdForExpense(item.id)
+                    androidx.core.app.NotificationManagerCompat.from(ctx).cancel(notificationId)
+                }
+            } catch (_: Exception) {}
+        }
         _pendingExpenses.value = emptyList()
         saveToDisk(emptyList())
     }

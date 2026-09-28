@@ -30,6 +30,10 @@ class ExpenseNotificationHelper @Inject constructor(
         const val EXTRA_MERCHANT = "extra_merchant"
         const val EXTRA_TIMESTAMP = "extra_timestamp"
         const val EXTRA_NOTIFICATION_ID = "extra_notification_id"
+
+        fun getNotificationIdForExpense(expenseId: String): Int {
+            return (Math.abs(expenseId.hashCode()) % 100000) + 10000
+        }
     }
 
     init {
@@ -55,8 +59,7 @@ class ExpenseNotificationHelper @Inject constructor(
     }
 
     fun showExpenseNotification(expense: ParsedExpense) {
-        // Compute a guaranteed positive notification ID
-        val notificationId = (Math.abs(expense.id.hashCode()) % 100000) + 10000
+        val notificationId = getNotificationIdForExpense(expense.id)
         val isIncome = expense.type == com.danilkinkin.buckwheat.data.entities.TransactionCaptureType.INCOME
 
         // 1. Content Intent (Tapping notification opens MainActivity to review/edit)
@@ -164,5 +167,16 @@ class ExpenseNotificationHelper @Inject constructor(
 
     fun dismissNotification(notificationId: Int) {
         NotificationManagerCompat.from(context).cancel(notificationId)
+    }
+
+    fun dismissExpenseNotification(expenseId: String) {
+        val notificationId = getNotificationIdForExpense(expenseId)
+        dismissNotification(notificationId)
+    }
+
+    fun dismissAllExpenseNotifications() {
+        try {
+            NotificationManagerCompat.from(context).cancelAll()
+        } catch (_: Exception) {}
     }
 }

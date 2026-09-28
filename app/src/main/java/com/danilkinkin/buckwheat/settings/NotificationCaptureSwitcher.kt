@@ -56,6 +56,7 @@ fun NotificationCaptureSwitcher(
     val isEnabled by viewModel.isEnabled.collectAsState()
     var showListenerPermissionDialog by remember { mutableStateOf(false) }
     var showPostNotificationDialog by remember { mutableStateOf(false) }
+    var showBatteryOptimizationDialog by remember { mutableStateOf(false) }
 
     val postNotificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -66,6 +67,9 @@ fun NotificationCaptureSwitcher(
             } else {
                 viewModel.setEnabled(true)
                 NotificationListenerUtils.ensureListenerConnected(context)
+                if (!NotificationListenerUtils.isIgnoringBatteryOptimizations(context)) {
+                    showBatteryOptimizationDialog = true
+                }
             }
         } else {
             showPostNotificationDialog = true
@@ -100,6 +104,9 @@ fun NotificationCaptureSwitcher(
 
                         viewModel.setEnabled(true)
                         NotificationListenerUtils.ensureListenerConnected(context)
+                        if (!NotificationListenerUtils.isIgnoringBatteryOptimizations(context)) {
+                            showBatteryOptimizationDialog = true
+                        }
                     } else {
                         viewModel.setEnabled(false)
                     }
@@ -159,6 +166,34 @@ fun NotificationCaptureSwitcher(
             },
             dismissButton = {
                 TextButton(onClick = { showPostNotificationDialog = false }) {
+                    Text(text = stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Dialog for Battery Optimization exemption (preventing OEM background killing)
+    if (showBatteryOptimizationDialog) {
+        AlertDialog(
+            onDismissRequest = { showBatteryOptimizationDialog = false },
+            title = {
+                Text(text = stringResource(R.string.notification_permission_battery_title))
+            },
+            text = {
+                Text(text = stringResource(R.string.notification_permission_battery_desc))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBatteryOptimizationDialog = false
+                        NotificationListenerUtils.requestIgnoreBatteryOptimizations(context)
+                    }
+                ) {
+                    Text(text = stringResource(R.string.notification_permission_disable_battery_optimization))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBatteryOptimizationDialog = false }) {
                     Text(text = stringResource(R.string.cancel))
                 }
             }

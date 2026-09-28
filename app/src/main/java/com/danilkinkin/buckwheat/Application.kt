@@ -14,6 +14,14 @@ import javax.inject.Inject
 @HiltAndroidApp
 class Application : Application(), Configuration.Provider {
 
+    companion object {
+        @Volatile
+        var isAppInForeground: Boolean = false
+            private set
+
+        private var startedActivitiesCount = 0
+    }
+
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
@@ -34,7 +42,8 @@ class Application : Application(), Configuration.Provider {
             }
 
             override fun onActivityStarted(activity: Activity) {
-
+                startedActivitiesCount++
+                isAppInForeground = startedActivitiesCount > 0
             }
 
             override fun onActivityResumed(activity: Activity) {
@@ -47,7 +56,8 @@ class Application : Application(), Configuration.Provider {
             }
 
             override fun onActivityStopped(activity: Activity) {
-
+                startedActivitiesCount = maxOf(0, startedActivitiesCount - 1)
+                isAppInForeground = startedActivitiesCount > 0
             }
 
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {

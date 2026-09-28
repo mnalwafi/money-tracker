@@ -37,10 +37,20 @@ class ExpenseActionReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val pendingExpenseId = intent.getStringExtra(ExpenseNotificationHelper.EXTRA_PENDING_EXPENSE_ID) ?: return
-        val notificationId = intent.getIntExtra(ExpenseNotificationHelper.EXTRA_NOTIFICATION_ID, 0)
+        val notificationId = intent.getIntExtra(
+            ExpenseNotificationHelper.EXTRA_NOTIFICATION_ID,
+            ExpenseNotificationHelper.getNotificationIdForExpense(pendingExpenseId)
+        )
 
         when (intent.action) {
             ACTION_CONFIRM -> {
+                // Verify pending expense is still active to prevent duplicate logging
+                val pendingExpense = pendingExpenseRepository.getPendingExpenseById(pendingExpenseId)
+                if (pendingExpense == null) {
+                    notificationHelper.dismissNotification(notificationId)
+                    return
+                }
+
                 val rawAmount = intent.getStringExtra(ExpenseNotificationHelper.EXTRA_AMOUNT) ?: return
                 val merchant = intent.getStringExtra(ExpenseNotificationHelper.EXTRA_MERCHANT) ?: ""
                 val timestamp = intent.getLongExtra(ExpenseNotificationHelper.EXTRA_TIMESTAMP, System.currentTimeMillis())
@@ -50,6 +60,7 @@ class ExpenseActionReceiver : BroadcastReceiver() {
                 val amount = try {
                     BigDecimal(rawAmount)
                 } catch (e: Exception) {
+                    notificationHelper.dismissNotification(notificationId)
                     return
                 }
 
@@ -77,8 +88,15 @@ class ExpenseActionReceiver : BroadcastReceiver() {
             }
 
             ACTION_DISMISS -> {
-                pendingExpenseRepository.removePendingExpense(pendingExpenseId)
-                notificationHelper.dismissNotification(notificationId)
+                val pendingResult = goAsync()
+                scope.launch {
+                    try {
+                        pendingExpenseRepository.removePendingExpense(pendingExpenseId)
+                        notificationHelper.dismissNotification(notificationId)
+                    } finally {
+                        pendingResult.finish()
+                    }
+                }
             }
         }
     }

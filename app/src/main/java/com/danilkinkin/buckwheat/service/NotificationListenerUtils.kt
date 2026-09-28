@@ -84,17 +84,22 @@ object NotificationListenerUtils {
     }
 
     /**
-     * Ensures that the NotificationListenerService is bound and active, even if the app was closed or killed.
+     * Ensures that the NotificationListenerService is bound and active, without killing already-connected services.
      */
     fun ensureListenerConnected(context: Context) {
         if (!isNotificationListenerEnabled(context)) return
+
+        // If listener service is already actively connected, do NOT touch or toggle it!
+        if (ExpenseNotificationListenerService.isConnected) {
+            return
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             val componentName = ComponentName(context, ExpenseNotificationListenerService::class.java)
             try {
                 android.service.notification.NotificationListenerService.requestRebind(componentName)
             } catch (_: Exception) {
-                // Fallback for aggressive OEM task managers (MIUI, ColorOS, OneUI, EMUI):
+                // Exceptional fallback only when disconnected:
                 // Toggling component state forces Android's NotificationManagerService to immediately re-bind the listener.
                 try {
                     val pm = context.packageManager
@@ -108,6 +113,39 @@ object NotificationListenerUtils {
                         PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
                         PackageManager.DONT_KILL_APP
                     )
+                } catch (_: Exception) {}
+            }
+        }
+    }
+
+    /**
+     * Checks if the app is exempt from Android battery optimizations.
+     */
+    fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            return powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: true
+        }
+        return true
+    }
+
+    /**
+     * Opens battery optimization settings or requests exemption so background notification capture is not killed.
+     */
+    fun requestIgnoreBatteryOptimizations(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                try {
+                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
                 } catch (_: Exception) {}
             }
         }

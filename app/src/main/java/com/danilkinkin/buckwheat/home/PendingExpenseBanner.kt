@@ -41,6 +41,7 @@ import com.danilkinkin.buckwheat.data.entities.Transaction
 import com.danilkinkin.buckwheat.data.entities.TransactionType
 import com.danilkinkin.buckwheat.editor.EditorViewModel
 
+import com.danilkinkin.buckwheat.service.ExpenseNotificationHelper
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -48,7 +49,13 @@ import javax.inject.Inject
 @HiltViewModel
 class PendingExpenseViewModel @Inject constructor(
     val pendingExpenseRepository: PendingExpenseRepository,
-) : ViewModel()
+    val notificationHelper: ExpenseNotificationHelper,
+) : ViewModel() {
+    fun dismiss(expenseId: String) {
+        pendingExpenseRepository.removePendingExpense(expenseId)
+        notificationHelper.dismissExpenseNotification(expenseId)
+    }
+}
 
 @Composable
 fun PendingExpenseBanner(
@@ -115,7 +122,7 @@ fun PendingExpenseBanner(
                         }
                         IconButton(
                             onClick = {
-                                viewModel.pendingExpenseRepository.removePendingExpense(latestExpense.id)
+                                viewModel.dismiss(latestExpense.id)
                             },
                             modifier = Modifier.size(24.dp),
                         ) {
@@ -157,7 +164,7 @@ fun PendingExpenseBanner(
                                     merchant = latestExpense.merchant,
                                     date = latestExpense.date,
                                     )
-                                viewModel.pendingExpenseRepository.removePendingExpense(latestExpense.id)
+                                viewModel.dismiss(latestExpense.id)
                                 onEditExpense()
                             },
                             modifier = Modifier.padding(end = BuckwheatDesignSystem.Spacing.s),
@@ -178,7 +185,7 @@ fun PendingExpenseBanner(
                                 } else {
                                     spendsViewModel.addSpent(transaction)
                                 }
-                                viewModel.pendingExpenseRepository.removePendingExpense(latestExpense.id)
+                                viewModel.dismiss(latestExpense.id)
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isIncome) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,

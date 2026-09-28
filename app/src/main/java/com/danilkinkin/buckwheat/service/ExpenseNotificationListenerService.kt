@@ -2,6 +2,7 @@ package com.danilkinkin.buckwheat.service
 
 import android.app.Notification
 import android.content.ComponentName
+import android.content.Intent
 import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -23,6 +24,10 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
 
     companion object {
         private const val TAG = "ExpenseNotificationListener"
+
+        @Volatile
+        var isConnected: Boolean = false
+            private set
     }
 
     @Inject
@@ -42,13 +47,19 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
+        isConnected = true
         Log.d(TAG, "NotificationListener connected and actively listening for transactions")
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
+        isConnected = false
         Log.d(TAG, "NotificationListener disconnected, requesting rebind to maintain background capture")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             try {
@@ -76,6 +87,11 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
         if (isChatNotification && !isKnownFinance) {
             return
         }
+
+        // Acquire a temporary partial wake lock so background CPU is not suspended before processing completes
+        val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
+        val wakeLock = powerManager?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "buckwheat:notification_capture")
+        wakeLock?.acquire(5000L)
 
         serviceScope.launch {
             try {
@@ -107,14 +123,20 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
 
                 if (parsedExpense != null) {
                     val addResult = pendingExpenseRepository.addPendingExpense(parsedExpense)
+                    val isAppForeground = com.danilkinkin.buckwheat.Application.isAppInForeground
+
                     when (addResult) {
                         is PendingExpenseAddResult.Added -> {
                             Log.d(TAG, "Transaction detected: ${addResult.expense.type} ${addResult.expense.amount} at ${addResult.expense.merchant}")
-                            notificationHelper.showExpenseNotification(addResult.expense)
+                            if (!isAppForeground) {
+                                notificationHelper.showExpenseNotification(addResult.expense)
+                            }
                         }
                         is PendingExpenseAddResult.Merged -> {
                             Log.d(TAG, "Cross-app gateway transaction merged: ${addResult.mergedExpense.type} ${addResult.mergedExpense.amount} at ${addResult.mergedExpense.merchant}")
-                            notificationHelper.showExpenseNotification(addResult.mergedExpense)
+                            if (!isAppForeground) {
+                                notificationHelper.showExpenseNotification(addResult.mergedExpense)
+                            }
                         }
                         is PendingExpenseAddResult.IgnoredDuplicate -> {
                             Log.d(TAG, "Duplicate transaction ignored: ${parsedExpense.amount} at ${parsedExpense.merchant}")
@@ -123,12 +145,19 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing incoming notification", e)
+            } finally {
+                try {
+                    if (wakeLock?.isHeld == true) {
+                        wakeLock.release()
+                    }
+                } catch (_: Exception) {}
             }
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        isConnected = false
         serviceScope.cancel()
     }
 }

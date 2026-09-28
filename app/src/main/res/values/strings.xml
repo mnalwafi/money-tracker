@@ -151,6 +151,9 @@
   <string name="notification_permission_open_settings">Open Settings</string>
   <string name="notification_permission_post_title">Show Transaction Notifications</string>
   <string name="notification_permission_post_desc">Buckwheat needs permission to post notifications so you receive immediate prompts to confirm or categorize expenses when the app is closed.</string>
+  <string name="notification_permission_battery_title">Allow Background Running</string>
+  <string name="notification_permission_battery_desc">To ensure payment notifications are detected reliably even when your phone is locked or Buckwheat is closed, disable battery optimization for Buckwheat.</string>
+  <string name="notification_permission_disable_battery_optimization">Disable Optimization</string>
 
   <string name="notification_channel_expense_name">Expense Alerts</string>
   <string name="notification_channel_expense_desc">Prompts to confirm and categorize detected payment expenses</string>
