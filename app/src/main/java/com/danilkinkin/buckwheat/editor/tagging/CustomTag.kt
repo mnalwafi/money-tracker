@@ -1,19 +1,14 @@
 package com.danilkinkin.buckwheat.editor.tagging
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,18 +16,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -57,7 +49,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -78,10 +69,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.danilkinkin.buckwheat.LocalWindowInsets
 import com.danilkinkin.buckwheat.R
-import com.danilkinkin.buckwheat.base.balloon.detectTapUnconsumed
 import com.danilkinkin.buckwheat.data.AppViewModel
 import com.danilkinkin.buckwheat.data.SpendsViewModel
 import com.danilkinkin.buckwheat.editor.EditStage
@@ -89,7 +80,6 @@ import com.danilkinkin.buckwheat.editor.EditorViewModel
 import com.danilkinkin.buckwheat.editor.FocusController
 import com.danilkinkin.buckwheat.ui.BuckwheatTheme
 import com.danilkinkin.buckwheat.util.observeLiveData
-import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -145,180 +135,156 @@ fun CustomTag(
         onDispose { }
     }
 
-    val close = {
+    val close: (String?) -> Unit = { commentToSave ->
         isEdit = false
         isShowSuggestions = false
+        renderPopup = false
         onEdit(false)
         appViewModel.showSystemKeyboard.value = false
         appViewModel.lockDraggable.value = false
-        editorViewModel.currentComment.value = value.text.trim()
+        editorViewModel.currentComment.value = (commentToSave ?: value.text).trim()
     }
 
-    ExposedDropdownMenuBox(expanded = isShowSuggestions, onExpandedChange = {}) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            modifier = modifier
-                .menuAnchor()
-                .clip(CircleShape)
-                .then(if (isEdit) {
-                    Modifier
-                } else {
-                    Modifier.clickable {
-                        editorFocusController.blur()
-                        focusManager.clearFocus()
-                        isEdit = true
-                        onEdit(true)
-                        appViewModel.lockDraggable.value = true
-                    }
-                })
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .clip(CircleShape)
+            .then(if (isEdit) {
+                Modifier
+            } else {
+                Modifier.clickable {
+                    editorFocusController.blur()
+                    focusManager.clearFocus()
+                    isEdit = true
+                    isShowSuggestions = true
+                    onEdit(true)
+                    appViewModel.lockDraggable.value = true
+                }
+            })
+    ) {
+        Row(
+            modifier = Modifier
+                .widthIn(0.dp, extendWidth)
+                .padding(start = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
+            Spacer(Modifier.width(if (isEdit) 8.dp else 4.dp))
+            Icon(
                 modifier = Modifier
-                    .widthIn(0.dp, extendWidth)
-                    .padding(start = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Spacer(Modifier.width(if (isEdit) 8.dp else 4.dp))
-                Icon(
-                    modifier = Modifier
-                        .width(20.dp)
-                        .height(44.dp),
-                    painter = painterResource(R.drawable.ic_label),
-                    contentDescription = null,
-                )
-                Spacer(Modifier.width(if (onlyIcon && !isEdit) 12.dp else 8.dp))
+                    .width(20.dp)
+                    .height(44.dp),
+                painter = painterResource(R.drawable.ic_label),
+                contentDescription = null,
+            )
+            Spacer(Modifier.width(if (onlyIcon && !isEdit) 12.dp else 8.dp))
 
-                AnimatedContent(
-                    label = "openCloseTaggingEditor",
-                    targetState = isEdit,
-                    transitionSpec = {
-                        (fadeIn(
-                            tween(durationMillis = 250)
-                        ) togetherWith fadeOut(
-                            tween(durationMillis = 250)
-                        )).using(
-                            SizeTransform(clip = false)
-                        )
-                    }
-                ) { targetIsEdit ->
-                    val isTransitionSettled = targetIsEdit && this.transition.currentState == this.transition.targetState
+            AnimatedContent(
+                label = "openCloseTaggingEditor",
+                targetState = isEdit,
+                transitionSpec = {
+                    (fadeIn(
+                        tween(durationMillis = 250)
+                    ) togetherWith fadeOut(
+                        tween(durationMillis = 250)
+                    )).using(
+                        SizeTransform(clip = false)
+                    )
+                }
+            ) { targetIsEdit ->
+                val isTransitionSettled = targetIsEdit && this.transition.currentState == this.transition.targetState
 
+                LaunchedEffect(isTransitionSettled) {
                     if (isTransitionSettled) {
                         renderPopup = true
+                        appViewModel.showSystemKeyboard.value = true
                     }
+                }
 
-                    LaunchedEffect(isTransitionSettled) {
-                        if (isTransitionSettled) {
-                            appViewModel.showSystemKeyboard.value = true
-                        }
-                    }
-
-                    if (targetIsEdit) {
-                        CommentEditor(
-                            modifier = Modifier.width(extendWidth),
-                            value = value,
-                            onChange = { value = it },
-                            onApply = { close() },
-                            shouldFocus = isTransitionSettled,
-                        )
-                    } else if (!onlyIcon || value.text.isNotEmpty()) {
-                        Text(
-                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, end = 16.dp),
-                            text = value.text.ifEmpty { stringResource(R.string.add_comment) },
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
+                if (targetIsEdit) {
+                    CommentEditor(
+                        modifier = Modifier.width(extendWidth),
+                        value = value,
+                        onChange = {
+                            value = it
+                            isShowSuggestions = true
+                        },
+                        onApply = { close(null) },
+                        shouldFocus = isTransitionSettled,
+                    )
+                } else if (!onlyIcon || value.text.isNotEmpty()) {
+                    Text(
+                        modifier = Modifier.padding(top = 8.dp, bottom = 8.dp, end = 16.dp),
+                        text = value.text.ifEmpty { stringResource(R.string.add_comment) },
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }
+    }
 
-        if (renderPopup) {
-            val filteredItems = remember(tags, value.text) {
-                tags.filter {
-                    it.contains(value.text, ignoreCase = true)
-                }
+    val filteredItems = remember(tags, value.text) {
+        if (value.text.isEmpty()) {
+            tags
+        } else {
+            tags.filter {
+                it.contains(value.text, ignoreCase = true)
             }
+        }
+    }
 
-            val topBarHeight = LocalWindowInsets.current.calculateTopPadding()
+    val shouldShowPopup = isEdit && renderPopup && isShowSuggestions && filteredItems.isNotEmpty() &&
+        !(filteredItems.size == 1 && filteredItems[0].equals(value.text.trim(), ignoreCase = true))
 
-            val popupPositionProvider = remember(localDensity, topBarHeight) {
-                DropdownMenuPositionProvider(
-                    DpOffset(0.dp, 8.dp),
-                    localDensity,
-                    topBarHeight,
-                )
-            }
+    if (shouldShowPopup) {
+        val topBarHeight = LocalWindowInsets.current.calculateTopPadding()
 
-            Popup(
-                popupPositionProvider = popupPositionProvider,
-                onDismissRequest = {},
+        val popupPositionProvider = remember(localDensity, topBarHeight) {
+            DropdownMenuPositionProvider(
+                DpOffset(0.dp, 8.dp),
+                localDensity,
+                topBarHeight,
+            )
+        }
+
+        Popup(
+            popupPositionProvider = popupPositionProvider,
+            onDismissRequest = {
+                isShowSuggestions = false
+            },
+            properties = PopupProperties(
+                focusable = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = true,
+            ),
+        ) {
+            Surface(
+                modifier = Modifier
+                    .width(extendWidth)
+                    .heightIn(max = 240.dp),
+                shape = BuckwheatDesignSystem.Shapes.button,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+                shadowElevation = 4.dp,
             ) {
-                val dismissEvent = remember { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pointerInput(Unit) {
-                            detectTapUnconsumed {
-                                if (!dismissEvent.value) close()
-                                dismissEvent.value = false
-                            }
-                        },
-                    contentAlignment = Alignment.BottomCenter,
+                LazyColumn(
+                    userScrollEnabled = true,
+                    contentPadding = PaddingValues(vertical = 8.dp),
                 ) {
-                    AnimatedVisibility(
-                        visible = isShowSuggestions,
-                        enter = expandVertically(tween(150)),
-                        exit = shrinkVertically(tween(150)),
-                    ) {
-                        if (filteredItems.isNotEmpty() && !(filteredItems.size == 1 && filteredItems[0] == value.text)) {
-                            Surface(
-                                modifier = Modifier
-                                    .width(extendWidth)
-                                    .heightIn(max = 240.dp)
-                                    .pointerInput(Unit) {
-                                        detectTapGestures {
-                                            dismissEvent.value = true
-                                        }
-                                    },
-                                shape = BuckwheatDesignSystem.Shapes.button
-                            ) {
-                                LazyColumn(
-                                    userScrollEnabled = true,
-                                    contentPadding = PaddingValues(vertical = 8.dp),
-                                ) {
-                                    items(
-                                        items = filteredItems,
-                                        key = { it }
-                                    ) { suggestion ->
-                                        SuggestItemRow(
-                                            name = suggestion,
-                                            onClick = {
-                                                dismissEvent.value = true
-                                                value = TextFieldValue(
-                                                    suggestion,
-                                                    TextRange(suggestion.length),
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
+                    items(
+                        items = filteredItems,
+                        key = { it }
+                    ) { suggestion ->
+                        SuggestItemRow(
+                            name = suggestion,
+                            onClick = {
+                                close(suggestion)
                             }
-                        }
-
-                        DisposableEffect(Unit) {
-                            onDispose {
-                                renderPopup = false
-                            }
-                        }
+                        )
                     }
                 }
-            }
-
-            LaunchedEffect(Unit) {
-                isShowSuggestions = true
             }
         }
     }
@@ -385,7 +351,7 @@ fun CommentEditor(
     onApply: () -> Unit,
     shouldFocus: Boolean = true,
 ) {
-    var focusIsTracking by remember { mutableStateOf(false) }
+    var hasHadFocus by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     TextField(
@@ -393,7 +359,9 @@ fun CommentEditor(
             .fillMaxWidth()
             .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
-                if (!focusState.hasFocus && focusIsTracking) {
+                if (focusState.hasFocus) {
+                    hasHadFocus = true
+                } else if (hasHadFocus) {
                     onApply()
                 }
             },
@@ -447,7 +415,6 @@ fun CommentEditor(
     LaunchedEffect(shouldFocus) {
         if (shouldFocus) {
             focusRequester.requestFocus()
-            focusIsTracking = true
         }
     }
 }
