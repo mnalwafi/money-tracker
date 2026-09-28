@@ -3,6 +3,7 @@ package com.danilkinkin.buckwheat.editor.tagging
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -160,6 +161,7 @@ fun CustomTag(
                     isEdit = true
                     isShowSuggestions = true
                     onEdit(true)
+                    appViewModel.showSystemKeyboard.value = true
                     appViewModel.lockDraggable.value = true
                 }
             })
@@ -185,9 +187,9 @@ fun CustomTag(
                 targetState = isEdit,
                 transitionSpec = {
                     (fadeIn(
-                        tween(durationMillis = 250)
+                        tween(durationMillis = 180, easing = FastOutSlowInEasing)
                     ) togetherWith fadeOut(
-                        tween(durationMillis = 250)
+                        tween(durationMillis = 180, easing = FastOutSlowInEasing)
                     )).using(
                         SizeTransform(clip = false)
                     )
@@ -198,7 +200,6 @@ fun CustomTag(
                 LaunchedEffect(isTransitionSettled) {
                     if (isTransitionSettled) {
                         renderPopup = true
-                        appViewModel.showSystemKeyboard.value = true
                     }
                 }
 
@@ -211,7 +212,7 @@ fun CustomTag(
                             isShowSuggestions = true
                         },
                         onApply = { close(null) },
-                        shouldFocus = isTransitionSettled,
+                        shouldFocus = true,
                     )
                 } else if (!onlyIcon || value.text.isNotEmpty()) {
                     Text(

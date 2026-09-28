@@ -3,7 +3,9 @@ package com.danilkinkin.buckwheat.home
 import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.compose.animation.core.EaseInOutQuad
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -220,7 +222,10 @@ fun MainScreen(
         val editorHeightAnimated by animateFloatAsState(
             label = "editorHeightAnimatedValue",
             targetValue = editorHeight,
-            animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMedium,
+            ),
         )
 
         Row {
