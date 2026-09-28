@@ -35,10 +35,20 @@ class HybridTransactionCaptureEngine @Inject constructor(
             "com.wf.wellsfargomobile",
             "com.citi.citimobile",
             "com.bca",
+            "com.bankbca.bca",
             "com.mandiri.livin",
+            "id.co.bankmandiri.livin",
+            "id.co.bri.brimo",
+            "com.bri.brimo",
+            "id.co.bni.newmobile",
+            "id.bni.wondr",
+            "com.cimbniaga.octomobile",
+            "com.btpn.jenius",
+            "id.seabank.mobile",
             "id.dana",
             "com.gojek.app",
-            "ovo.id"
+            "ovo.id",
+            "com.shopee.id"
         )
 
         // Non-financial messaging, social media, and communication packages that should never trigger financial tracking

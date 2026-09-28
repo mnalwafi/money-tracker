@@ -40,15 +40,16 @@ const STRONG_EXPENSE_PATTERNS = [
     /\b(spent|debited(\s+(with|by|from))?|paid(\s+to)?|payment(\s+(to|of|for))?|purchase\s+(at|of|for)|purchased)\b/i,
     /\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi(\s+(di|sebesar))?|berhasil\s+bayar)\b/i,
     /\b(transfer\s+(ke|out\s+to)|sent\s+to|debit\s+alert|card\s+ending\s+in)\b/i,
-    /\b(potongan\s+sebesar|terpotong\s+sebesar|tagihan\s+lunas)\b/i
+    /\b(potongan\s+sebesar|terpotong\s+sebesar|tagihan\s+lunas)\b/i,
+    /\b(pembelian(\s+qris)?|transaksi\s+pembelian|transaksi\s+qris|bayar\s+qris|qris\s+sebesar|qris\s+berhasil)\b/i
 ];
 
-const WEAK_EXPENSE_WORDS = ["buy", "bought", "charge", "charged", "order", "checkout", "belanja"];
+const WEAK_EXPENSE_WORDS = ["buy", "bought", "charge", "charged", "order", "checkout", "belanja", "pembelian", "qris"];
 
 const STRONG_INCOME_PATTERNS = [
     /\b(received(\s+.{1,35})?\s+from|received\s+money|credited(\s+(with|by|to))?|salary\s+credited)\b/i,
-    /\b(deposit\s+successful|inward\s+transfer|transfer\s+masuk|dana\s+masuk)\b/i,
-    /\b(menerima\s+transfer|uang\s+masuk|top[-\s]?up\s+berhasil|topup\s+success)\b/i,
+    /\b(deposit\s+successful|inward\s+transfer|transfer\s+masuk|dana(\s+.{1,30})?\s+masuk)\b/i,
+    /\b(menerima\s+transfer|uang(\s+.{1,30})?\s+masuk|top[-\s]?up\s+berhasil|topup\s+success)\b/i,
     /\b(transfer\s+dari|received\s+payment|credit\s+alert|pengembalian\s+dana|gaji)\b/i,
     /\b(refund\s+(from|processed|of)?|cashback\s+credited)\b/i
 ];
@@ -219,6 +220,14 @@ assert.strictEqual(IGNORED_PACKAGES.has("com.whatsapp"), true);
 assert.strictEqual(IGNORED_PACKAGES.has("org.telegram.messenger"), true);
 console.log('✓ Non-financial chat and messaging packages successfully blacklisted!');
 
+// Finance packages verification
+const KNOWN_FINANCE_PACKAGES = new Set([
+    "com.bca", "com.mandiri.livin", "id.co.bri.brimo", "com.bri.brimo", "id.dana", "com.gojek.app", "ovo.id"
+]);
+assert.strictEqual(KNOWN_FINANCE_PACKAGES.has("id.co.bri.brimo"), true);
+assert.strictEqual(KNOWN_FINANCE_PACKAGES.has("com.bri.brimo"), true);
+console.log('✓ BRImo and Indonesian banking packages successfully whitelisted in KNOWN_FINANCE_PACKAGES!');
+
 // 3. Shorthand multiplier extraction
 function parseShorthand(text) {
     const SHORTHAND_PATTERN = /(?:([a-zA-Z$€£¥₹]+)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)\b/i;
@@ -266,6 +275,28 @@ const qrisMatch = qrisNotification.match(PREFIX_PATTERN);
 assert.ok(qrisMatch, "Must match prefix currency pattern for Rp13.000,00");
 assert.strictEqual(parseAmountString(qrisMatch[2], qrisMatch[1]), "13000.00");
 console.log(`✓ QRIS notification with leading date correctly parsed as: 13000.00 IDR (NOT 26!)`);
+
+// Test 5c: BRImo QRIS exact notification from user
+const brimoUserQris = "28/09/2026 08:46:16 Transaksi Pembelian QRIS sebesar Rp8.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017";
+const brimoQrisClass = classify(brimoUserQris);
+assert.strictEqual(brimoQrisClass.type, 'EXPENSE', `Expected EXPENSE for BRImo notification: ${brimoUserQris}`);
+assert.ok(brimoQrisClass.confidence >= 0.70, `Expected high confidence >= 0.70, got ${brimoQrisClass.confidence}`);
+
+const brimoMatch = brimoUserQris.match(PREFIX_PATTERN);
+assert.ok(brimoMatch, "Must match prefix currency pattern for Rp8.000,00");
+assert.strictEqual(parseAmountString(brimoMatch[2], brimoMatch[1]), "8000.00");
+console.log(`✓ BRImo QRIS notification correctly parsed as: [${brimoQrisClass.type}] ${(brimoQrisClass.confidence * 100).toFixed(1)}% -> 8000.00 IDR`);
+
+// Test 5d: Sobat BRI Income notification from user
+const sobatBriIncome = "Sobat BRI! Dana Rp12.000.000 masuk ke rekening 155601001393539 pada 28/09/2026 07:13:30 KET.:PT PETROLINK SERVICES INDONESIA-BANK EKO";
+const sobatBriClass = classify(sobatBriIncome);
+assert.strictEqual(sobatBriClass.type, 'INCOME', `Expected INCOME for Sobat BRI notification: ${sobatBriIncome}`);
+assert.ok(sobatBriClass.confidence >= 0.70, `Expected high confidence >= 0.70, got ${sobatBriClass.confidence}`);
+
+const sobatBriMatch = sobatBriIncome.match(PREFIX_PATTERN);
+assert.ok(sobatBriMatch, "Must match prefix currency pattern for Rp12.000.000");
+assert.strictEqual(parseAmountString(sobatBriMatch[2], sobatBriMatch[1]), "12000000.00");
+console.log(`✓ Sobat BRI notification correctly parsed as: [${sobatBriClass.type}] ${(sobatBriClass.confidence * 100).toFixed(1)}% -> 12000000.00 IDR`);
 
 // Test 6: Cross-App Payment Gateway Correlation (e.g. BRImo -> Google Pay -> Google One)
 const GATEWAY_DEFINITIONS = [

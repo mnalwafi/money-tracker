@@ -114,8 +114,10 @@ class TfLiteTransactionClassifier @Inject constructor(
     }
 
     override fun classify(text: String): ClassificationResult {
+        val ruleResult = ruleBasedFallback.classify(text)
+
         if (!isModelReady || interpreter == null || vocab.isEmpty()) {
-            return ruleBasedFallback.classify(text)
+            return ruleResult
         }
 
         return try {
@@ -146,6 +148,16 @@ class TfLiteTransactionClassifier @Inject constructor(
 
             val confidence = probMap[predictedType] ?: 0.5f
 
+            // Hybrid decision: If TFLite classified as NOISE, but rule-based classifier identified a clear EXPENSE or INCOME:
+            if (predictedType == TransactionClassificationType.NOISE && ruleResult.type != TransactionClassificationType.NOISE) {
+                return ruleResult
+            }
+
+            // If TFLite has low confidence and rule-based classifier has higher confidence on non-noise:
+            if (confidence < 0.70f && ruleResult.type != TransactionClassificationType.NOISE && ruleResult.confidence > confidence) {
+                return ruleResult
+            }
+
             ClassificationResult(
                 type = predictedType,
                 confidence = confidence,
@@ -154,7 +166,7 @@ class TfLiteTransactionClassifier @Inject constructor(
             )
         } catch (t: Throwable) {
             Log.w(TAG, "Inference error in TFLite model, falling back to rule-based engine", t)
-            ruleBasedFallback.classify(text)
+            ruleResult
         }
     }
 
@@ -166,7 +178,14 @@ class TfLiteTransactionClassifier @Inject constructor(
     }
 
     private fun preprocessText(text: String): Array<IntArray> {
-        val tokens = text.lowercase(Locale.ROOT)
+        // Separate letters and digits (e.g. "Rp8.000,00" -> "Rp 8.000,00") so currency codes aren't clumped into numbers
+        val separated = text.replace(Regex("(?<=[a-zA-Z])(?=\\d)|(?<=\\d)(?=[a-zA-Z])"), " ")
+        // Strip timestamps and dates so they don't consume the limited sequence length
+        val cleanedText = separated
+            .replace(Regex("""\b\d{1,4}[/\-.]\d{1,2}[/\-.]\d{1,4}\b"""), " ")
+            .replace(Regex("""\b\d{1,2}:\d{2}(?::\d{2})?\b"""), " ")
+
+        val tokens = cleanedText.lowercase(Locale.ROOT)
             .split(Regex("[^a-z0-9]+"))
             .filter { it.isNotBlank() }
 

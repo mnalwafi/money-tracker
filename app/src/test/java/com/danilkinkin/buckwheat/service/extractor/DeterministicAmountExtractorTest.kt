@@ -105,4 +105,27 @@ class DeterministicAmountExtractorTest {
         assertNotNull(result)
         assertEquals(BigDecimal("15000.00"), result!!.amount)
     }
+
+    @Test
+    fun extract_brimoExactUserQrisNotification_extracts8000AndQris() {
+        val notification = "28/09/2026 08:46:16 Transaksi Pembelian QRIS sebesar Rp8.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017"
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        assertNotNull("Expected extraction result, got null", result)
+        assertEquals(BigDecimal("8000.00"), result!!.amount)
+        assertEquals("Rp", result.currencySymbol)
+        assertEquals("QRIS", result.merchant)
+    }
+
+    @Test
+    fun extract_sobatBriExactUserIncomeNotification_extracts12000000() {
+        val notification = "Sobat BRI! Dana Rp12.000.000 masuk ke rekening 155601001393539 pada 28/09/2026 07:13:30 KET.:PT PETROLINK SERVICES INDONESIA-BANK EKO"
+
+        val result = extractor.extract(notification, isIncome = true)
+
+        assertNotNull("Expected extraction result, got null", result)
+        assertEquals(BigDecimal("12000000.00"), result!!.amount)
+        assertEquals("Rp", result.currencySymbol)
+    }
 }

@@ -165,4 +165,19 @@ class NotificationExpenseParserTest {
         assertEquals(BigDecimal("55.00"), expense?.amount)
         assertEquals("Target", expense?.merchant)
     }
+
+    @Test
+    fun parse_brimoQrisNotification_extractsCorrectAmountAndMerchant() {
+        val expense = parser.parse(
+            packageName = "id.co.bri.brimo",
+            title = "BRImo",
+            text = "28/09/2026 08:46:16 Transaksi Pembelian QRIS sebesar Rp8.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017",
+            postTime = 1700000000000L
+        )
+
+        assertNotNull("BRImo QRIS expense must not be null", expense)
+        assertEquals(BigDecimal("8000.00"), expense?.amount)
+        assertEquals("Rp", expense?.currencySymbol)
+        assertEquals("QRIS", expense?.merchant)
+    }
 }

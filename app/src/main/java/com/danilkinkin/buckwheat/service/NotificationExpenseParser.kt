@@ -40,7 +40,7 @@ class NotificationExpenseParser @Inject constructor() {
 
         // Expense / debit intent triggers
         private val EXPENSE_TRIGGER_PATTERN = Pattern.compile(
-            """\b(spent|paid|purchase|purchased|debited|charge|charged|payment\s+of|transaction\s+of|bayar|transaksi|pembayaran|berhasil\s+bayar|debit|potongan|sent\s+to|transfer\s+ke)\b""",
+            """\b(spent|paid|purchase|purchased|debited|charge|charged|payment\s+of|transaction\s+of|bayar|transaksi|pembelian|qris|pembayaran|berhasil\s+bayar|debit|potongan|sent\s+to|transfer\s+ke)\b""",
             Pattern.CASE_INSENSITIVE
         )
 
@@ -58,10 +58,20 @@ class NotificationExpenseParser @Inject constructor() {
             "com.wf.wellsfargomobile",
             "com.citi.citimobile",
             "com.bca",
+            "com.bankbca.bca",
             "com.mandiri.livin",
+            "id.co.bankmandiri.livin",
+            "id.co.bri.brimo",
+            "com.bri.brimo",
+            "id.co.bni.newmobile",
+            "id.bni.wondr",
+            "com.cimbniaga.octomobile",
+            "com.btpn.jenius",
+            "id.seabank.mobile",
             "id.dana",
             "com.gojek.app",
-            "ovo.id"
+            "ovo.id",
+            "com.shopee.id"
         )
 
         // Non-financial messaging, social media, and communication packages that should never trigger financial tracking
@@ -102,9 +112,9 @@ class NotificationExpenseParser @Inject constructor() {
             Pattern.CASE_INSENSITIVE
         )
 
-        // Currency symbols and codes regex
+        // Currency symbols and codes regex (without trailing \b so attached formats like Rp8.000,00 match)
         private const val CURRENCY_REGEX =
-            """(?i)(?:[$€£¥₹₩₺₽฿₫]|\b(?:Rp\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW)\b)"""
+            """(?i)(?:[$€£¥₹₩₺₽฿₫]|\b(?:Rp\.?|Rs\.?|IDR|USD|EUR|GBP|CAD|AUD|SGD|MYR|CHF|JPY|INR|AED|SAR|NZD|HKD|VND|KRW))"""
 
         // Amount pattern with currency before or after
         private val AMOUNT_PATTERN_PREFIX = Pattern.compile(
@@ -121,7 +131,7 @@ class NotificationExpenseParser @Inject constructor() {
         )
 
         private val MERCHANT_PAID_TO_PATTERN = Pattern.compile(
-            """(?i)(?:paid\s+to|payment\s+to|purchase\s+at|transaksi\s+di|pembayaran\s+ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""
+            """(?i)(?:paid\s+to|payment\s+to|purchase\s+at|transaksi\s+pembelian(?:\s+di|\s+ke)?|pembelian(?:\s+di|\s+ke)?|transaksi\s+di|pembayaran\s+(?:qris\s+)?(?:ke|di)|bayar\s+(?:ke|di))\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b|[\.,]|$)"""
         )
 
         // Generic notification titles to ignore when fallbacking to title

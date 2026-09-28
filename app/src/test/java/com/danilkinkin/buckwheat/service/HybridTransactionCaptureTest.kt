@@ -330,4 +330,41 @@ class HybridTransactionCaptureTest {
         assertEquals(BigDecimal("87580.00"), extracted?.amount)
         assertEquals("GOOGLE PAY", extracted?.merchant)
     }
+
+    @Test
+    fun pipeline_brimoQrisExpenseNotification_extractedAccurately() {
+        val title = "BRImo"
+        val text = "28/09/2026 08:46:16 Transaksi Pembelian QRIS sebesar Rp8.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017"
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.EXPENSE, classification.type)
+        assertTrue("Confidence must be >= 0.70, was ${classification.confidence}", classification.confidence >= 0.70f)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = false)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("8000.00"), extracted?.amount)
+        assertEquals("QRIS", extracted?.merchant)
+        assertEquals("Rp", extracted?.currencySymbol)
+    }
+
+    @Test
+    fun pipeline_sobatBriIncomeNotification_extractedAccurately() {
+        val title = "SMS"
+        val text = "Sobat BRI! Dana Rp12.000.000 masuk ke rekening 155601001393539 pada 28/09/2026 07:13:30 KET.:PT PETROLINK SERVICES INDONESIA-BANK EKO"
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.INCOME, classification.type)
+        assertTrue("Confidence must be >= 0.70, was ${classification.confidence}", classification.confidence >= 0.70f)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = true)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("12000000.00"), extracted?.amount)
+        assertEquals("Rp", extracted?.currencySymbol)
+    }
+
+    @Test
+    fun pipeline_brimoPackageWhitelistedInKnownFinancePackages() {
+        assertTrue(HybridTransactionCaptureEngine.KNOWN_FINANCE_PACKAGES.contains("id.co.bri.brimo"))
+        assertTrue(HybridTransactionCaptureEngine.KNOWN_FINANCE_PACKAGES.contains("com.bri.brimo"))
+    }
 }
