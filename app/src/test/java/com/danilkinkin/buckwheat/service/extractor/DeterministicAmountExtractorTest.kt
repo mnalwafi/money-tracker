@@ -148,4 +148,13 @@ class DeterministicAmountExtractorTest {
         assertEquals(BigDecimal("50000.00"), result!!.amount)
         assertEquals("Alfamart", result.merchant)
     }
+
+    @Test
+    fun extract_stockMarketNotification_returnsNull() {
+        val notification = "🏦BBRI: Laba Bersih Bank Only 8M26 Tumbuh +7% YoY; Time Deposits Naik Signif... IHSG turun -1,51%, BYAN: Nilai Transaksi Saham ke Entitas Haji Isam Belum Diketahui."
+
+        val result = extractor.extract(notification, isIncome = false)
+
+        org.junit.Assert.assertNull("Stock market percentages and reporting periods must not be extracted as financial amounts", result)
+    }
 }

@@ -53,6 +53,8 @@ class DeterministicAmountExtractor @Inject constructor() {
         private val NON_MONETARY_REWARD_PATTERN = Regex(
             """(?i)\b(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\s*(?:sebesar\s+)?([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\b|\b([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\s*(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\b"""
         )
+        private val PERCENTAGE_PATTERN = Regex("""(?i)[+-]?\s*[0-9]+(?:[.,][0-9]+)?\s*(?:%|persen\b|percent\b)""")
+        private val FINANCIAL_PERIOD_PATTERN = Regex("""(?i)\b[0-9]+[mqhfy][0-9]{2,4}\b""")
 
         // Expense merchant patterns
         private val EXPENSE_MERCHANT_PATTERNS = listOf(
@@ -115,8 +117,11 @@ class DeterministicAmountExtractor @Inject constructor() {
      * Finds and extracts amount string and currency symbol/code.
      */
     fun extractAmountAndCurrency(content: String): Pair<BigDecimal, String?>? {
-        // Sanitize out loyalty coins, game points, and vouchers before amount extraction (e.g. "100RB Koin", "Koin 100RB", "5000 Poin")
-        val cleanContent = content.replace(NON_MONETARY_REWARD_PATTERN, " ")
+        // Sanitize out loyalty coins, game points, vouchers, percentages, and financial reporting periods (e.g. "100RB Koin", "+7%", "-1,51%", "8M26")
+        val cleanContent = content
+            .replace(NON_MONETARY_REWARD_PATTERN, " ")
+            .replace(PERCENTAGE_PATTERN, " ")
+            .replace(FINANCIAL_PERIOD_PATTERN, " ")
 
         // Try prefix pattern first ($15.00, Rp 50.000)
         val prefixMatcher = PREFIX_AMOUNT_PATTERN.matcher(cleanContent)

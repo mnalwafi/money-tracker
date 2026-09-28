@@ -41,9 +41,15 @@ const PROMO_PATTERNS = [
     /\b(login\s+dari\s+perangkat\s+baru|ganti\s+kata\s+sandi)\b/i
 ];
 
+const FINANCIAL_NEWS_MARKET_PATTERNS = [
+    /\b(ihsg|saham|laba\s+bersih|time\s+deposits?|yoy|qoq|dividen|reksadana|emiten|portofolio\s+saham|bursa\s+efek|idx|closing\s+bell|market\s+update|berita\s+pasar)\b/i,
+    /\b(nilai\s+transaksi\s+saham|aktivitas\s+transaksi|volume\s+transaksi|pergerakan\s+saham|rekomendasi\s+saham)\b/i,
+    /\b(turun\s+[-+]?[0-9]+[.,]?[0-9]*\s*%|naik\s+[-+]?[0-9]+[.,]?[0-9]*\s*%|tumbuh\s+[-+]?[0-9]+[.,]?[0-9]*\s*%)\b/i
+];
+
 const STRONG_EXPENSE_PATTERNS = [
     /\b(spent|debited(\s+(with|by|from))?|paid(\s+to)?|payment(\s+(to|of|for))?|purchase\s+(at|of|for)|purchased)\b/i,
-    /\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi(\s+(di|sebesar))?|berhasil\s+bayar)\b/i,
+    /\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi\s+(?:di\s+[A-Za-z0-9]|ke\s+[A-Za-z0-9]|sebesar|berhasil|sukses|selesai|pembelian|debit)|berhasil\s+bayar)\b/i,
     /\b(transfer\s+(ke|out\s+to)|sent\s+to|debit\s+alert|card\s+ending\s+in)\b/i,
     /\b(potongan\s+sebesar|terpotong\s+sebesar|tagihan\s+lunas)\b/i,
     /\b(pembelian(\s+qris)?|transaksi\s+pembelian|transaksi\s+qris|bayar\s+qris|qris\s+sebesar|qris\s+berhasil)\b/i
@@ -74,6 +80,7 @@ function classify(text) {
     for (const p of OTP_PATTERNS) if (p.test(text)) noiseScore += 8.0;
     for (const p of PROMO_PATTERNS) if (p.test(text)) noiseScore += 6.0;
     for (const p of CONVERSATIONAL_CHAT_PATTERNS) if (p.test(text)) noiseScore += 8.0;
+    for (const p of FINANCIAL_NEWS_MARKET_PATTERNS) if (p.test(text)) noiseScore += 10.0;
     for (const p of STRONG_EXPENSE_PATTERNS) if (p.test(text)) expenseScore += 4.5;
     const lower = text.toLowerCase();
     for (const w of WEAK_EXPENSE_WORDS) if (lower.includes(w)) expenseScore += 1.5;
@@ -209,22 +216,25 @@ const noise = [
     "bayar 250.000 sekarang dan dapatkan promo shopee terbaru",
     "tolong transfer 50.000 ya bro",
     "can you pay $20 for lunch?",
-    "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉"
+    "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉",
+    "🏦BBRI: Laba Bersih Bank Only 8M26 Tumbuh +7% YoY; Time Deposits Naik Signif... IHSG turun -1,51%, BYAN: Nilai Transaksi Saham ke Entitas Haji Isam Belum Diketahui."
 ];
 for (const n of noise) {
     const res = classify(n);
     assert.strictEqual(res.type, 'NOISE', `Expected NOISE for: ${n}`);
-    console.log(`✓ Noise / Chat / Promo bait correctly rejected: [${res.type}] -> "${n}"`);
+    console.log(`✓ Noise / Chat / Promo / Stock update correctly rejected: [${res.type}] -> "${n}"`);
 }
 
 // Package blacklist verification
 const IGNORED_PACKAGES = new Set([
     "com.whatsapp", "com.whatsapp.w4b", "org.telegram.messenger",
-    "com.facebook.orca", "com.instagram.android", "com.discord"
+    "com.facebook.orca", "com.instagram.android", "com.discord",
+    "com.stockbit.android", "com.ajaib.invest", "com.bibit.id", "com.tradingview.android"
 ]);
 assert.strictEqual(IGNORED_PACKAGES.has("com.whatsapp"), true);
 assert.strictEqual(IGNORED_PACKAGES.has("org.telegram.messenger"), true);
-console.log('✓ Non-financial chat and messaging packages successfully blacklisted!');
+assert.strictEqual(IGNORED_PACKAGES.has("com.stockbit.android"), true);
+console.log('✓ Non-financial chat and stock/investment packages successfully blacklisted!');
 
 // Finance packages verification
 const KNOWN_FINANCE_PACKAGES = new Set([
@@ -236,9 +246,18 @@ console.log('✓ BRImo and Indonesian banking packages successfully whitelisted 
 
 // 3. Shorthand multiplier extraction
 const NON_MONETARY_REWARD_PATTERN = /\b(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\s*(?:sebesar\s+)?([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\b|\b([0-9]+(?:[.,][0-9]+)?\s*(?:k|rb|ribu|m|jt|juta)?)\s*(?:koin|coins?|points?|poin|voucher|diskon|tiket|hadiah)\b/gi;
+const PERCENTAGE_PATTERN = /(?:[+-]?\s*[0-9]+(?:[.,][0-9]+)?\s*(?:%|persen\b|percent\b))/gi;
+const FINANCIAL_PERIOD_PATTERN = /\b[0-9]+[mqhfy][0-9]{2,4}\b/gi;
+
+function sanitizeContent(text) {
+    return text
+        .replace(NON_MONETARY_REWARD_PATTERN, ' ')
+        .replace(PERCENTAGE_PATTERN, ' ')
+        .replace(FINANCIAL_PERIOD_PATTERN, ' ');
+}
 
 function parseShorthand(text) {
-    const clean = text.replace(NON_MONETARY_REWARD_PATTERN, ' ');
+    const clean = sanitizeContent(text);
     const SHORTHAND_PATTERN = /(?:([a-zA-Z$€£¥₹]+)\s*)?([0-9]+(?:[.,][0-9]+)?)\s*(k|rb|ribu|m|jt|juta)\b/i;
     const m = clean.match(SHORTHAND_PATTERN);
     if (!m) return null;
@@ -264,6 +283,14 @@ assert.strictEqual(parseShorthand("1.5jt"), "1500000.00");
 assert.strictEqual(parseShorthand("50rb"), "50000.00");
 assert.strictEqual(parseAmountString("13.000,00", "Rp"), "13000.00");
 assert.strictEqual(parseShorthand("100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya"), null);
+
+// Test 4b: Stock market notification has no monetary amount extracted
+const stockbitNotif = "🏦BBRI: Laba Bersih Bank Only 8M26 Tumbuh +7% YoY; Time Deposits Naik Signif... IHSG turun -1,51%, BYAN: Nilai Transaksi Saham ke Entitas Haji Isam Belum Diketahui.";
+assert.strictEqual(parseShorthand(stockbitNotif), null);
+const sanitizedStock = sanitizeContent(stockbitNotif);
+const FORMATTED_STANDALONE_PATTERN = /\b([0-9]{1,3}(?:[.,][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+[.,][0-9]{1,2})\b/;
+assert.strictEqual(FORMATTED_STANDALONE_PATTERN.test(sanitizedStock), false, "Percentages like -1,51% must be stripped so FORMATTED_STANDALONE_PATTERN does not match 1,51");
+console.log('✓ Stock notification percentages and reporting periods correctly stripped without extracting bogus amount!');
 console.log('✓ All deterministic number formats and shorthand multipliers parsed perfectly, non-monetary coins ignored!');
 
 // Test 5: Successful shorthand payment

@@ -66,7 +66,8 @@ class HybridTransactionCaptureTest {
             "Special discount! Get 50% cashback voucher on your next purchase using code PROMO50.",
             "Security alert: Login detected from a new Windows PC device.",
             "Selamat Anda memenangkan voucher diskon belanja!",
-            "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉"
+            "100RB Koin Siap Diklaim!🎁 Koin 100RB dan hadiah lainnya bisa diklaim dengan transaksi di App Store & Google Play! Cek 👉",
+            "🏦BBRI: Laba Bersih Bank Only 8M26 Tumbuh +7% YoY; Time Deposits Naik Signif... IHSG turun -1,51%, BYAN: Nilai Transaksi Saham ke Entitas Haji Isam Belum Diketahui."
         )
 
         for (text in texts) {

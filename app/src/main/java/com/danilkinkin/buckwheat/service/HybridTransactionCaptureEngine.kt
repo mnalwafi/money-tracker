@@ -81,7 +81,20 @@ class HybridTransactionCaptureEngine @Inject constructor(
             "com.google.android.talk",
             "com.google.android.apps.tachyon",
             "com.microsoft.teams",
-            "us.zoom.videomeetings"
+            "us.zoom.videomeetings",
+            // Stock market, crypto, and investment news apps
+            "com.stockbit.android",
+            "com.ajaib.invest",
+            "com.ajaib.crypto",
+            "com.bibit.id",
+            "com.bareksa.app",
+            "com.indodax.mobile",
+            "com.pintu.android",
+            "com.pluang.android",
+            "com.tradingview.android",
+            "com.bloomberg.android",
+            "com.cnbc.android",
+            "com.investing.android"
         )
     }
 

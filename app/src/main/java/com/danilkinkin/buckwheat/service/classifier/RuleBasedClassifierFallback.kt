@@ -53,10 +53,17 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
             Pattern.compile("""\b(login\s+dari\s+perangkat\s+baru|ganti\s+kata\s+sandi)\b""", Pattern.CASE_INSENSITIVE)
         )
 
+        // Stock market, investment news, corporate earnings, and macro financial index patterns (Always NOISE)
+        private val FINANCIAL_NEWS_MARKET_PATTERNS = listOf(
+            Pattern.compile("""\b(ihsg|saham|laba\s+bersih|time\s+deposits?|yoy|qoq|dividen|reksadana|emiten|portofolio\s+saham|bursa\s+efek|idx|closing\s+bell|market\s+update|berita\s+pasar)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(nilai\s+transaksi\s+saham|aktivitas\s+transaksi|volume\s+transaksi|pergerakan\s+saham|rekomendasi\s+saham)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(turun\s+[-+]?[0-9]+[.,]?[0-9]*\s*%|naik\s+[-+]?[0-9]+[.,]?[0-9]*\s*%|tumbuh\s+[-+]?[0-9]+[.,]?[0-9]*\s*%)\b""", Pattern.CASE_INSENSITIVE)
+        )
+
         // Strong Expense patterns
         private val STRONG_EXPENSE_PATTERNS = listOf(
             Pattern.compile("""\b(spent|debited(\s+(with|by|from))?|paid(\s+to)?|payment(\s+(to|of|for))?|purchase\s+(at|of|for)|purchased)\b""", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("""\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi(\s+(di|sebesar))?|berhasil\s+bayar)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi\s+(?:di\s+[A-Za-z0-9]|ke\s+[A-Za-z0-9]|sebesar|berhasil|sukses|selesai|pembelian|debit)|berhasil\s+bayar)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(transfer\s+(ke|out\s+to)|sent\s+to|debit\s+alert|card\s+ending\s+in)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(potongan\s+sebesar|terpotong\s+sebesar|tagihan\s+lunas)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(pembelian(\s+qris)?|transaksi\s+pembelian|transaksi\s+qris|bayar\s+qris|qris\s+sebesar|qris\s+berhasil)\b""", Pattern.CASE_INSENSITIVE)
@@ -128,7 +135,14 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
             }
         }
 
-        // 3. Evaluate Expense patterns
+        // 5. Evaluate Financial News / Market Update patterns (High priority noise)
+        for (pattern in FINANCIAL_NEWS_MARKET_PATTERNS) {
+            if (pattern.matcher(text).find()) {
+                noiseScore += 10.0
+            }
+        }
+
+        // 6. Evaluate Expense patterns
         for (pattern in STRONG_EXPENSE_PATTERNS) {
             if (pattern.matcher(text).find()) {
                 expenseScore += 4.5
