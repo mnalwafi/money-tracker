@@ -251,20 +251,23 @@ fun TopSheetLayout(
                     }
                 }
 
-                Column(
-                    Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            alpha = max(1f - progressProvider() * 2, 0f)
-                        },
-                ) {
-                    Box(
+                val halfExpandAlpha = max(1f - progressProvider() * 2, 0f)
+                if (halfExpandAlpha > 0.01f) {
+                    Column(
                         Modifier
-                            .fillMaxWidth()
-                            .weight(1F)
-                            .background(editorBg)
-                    )
-                    sheetContentHalfExpand()
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                alpha = halfExpandAlpha
+                            },
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .weight(1F)
+                                .background(editorBg)
+                        )
+                        sheetContentHalfExpand()
+                    }
                 }
 
                 Box(

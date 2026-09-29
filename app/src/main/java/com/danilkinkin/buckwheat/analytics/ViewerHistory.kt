@@ -87,7 +87,8 @@ fun ViewerHistory(
                 // History Content
                 History(
                     modifier = Modifier.weight(1f),
-                    readOnly = true,
+                    readOnly = false,
+                    onClose = onClose,
                 )
             }
         }

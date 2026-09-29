@@ -22,6 +22,8 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -126,7 +128,7 @@ fun SwipeActions(
         })
     }
 
-    LaunchedEffect(key1 = Unit, block = {
+    LaunchedEffect(key1 = width, block = {
         snapshotFlow { state.offset.value }
             .collect {
                 willDismissDirection = when {
@@ -156,11 +158,15 @@ fun SwipeActions(
     SwipeToDismiss(
         state = state,
         modifier = Modifier
-            .pointerInteropFilter {
-                if (it.action == MotionEvent.ACTION_DOWN) {
-                    showingTutorial = false
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        if (event.changes.any { it.pressed }) {
+                            showingTutorial = false
+                        }
+                    }
                 }
-                false
             },
         directions = dismissDirections,
         dismissThresholds = {

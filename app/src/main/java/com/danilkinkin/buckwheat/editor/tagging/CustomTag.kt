@@ -17,11 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import com.danilkinkin.buckwheat.ui.BuckwheatTheme
 import com.danilkinkin.buckwheat.ui.designsystem.BuckwheatDesignSystem
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -261,29 +263,31 @@ fun CustomTag(
                 dismissOnClickOutside = true,
             ),
         ) {
-            Surface(
-                modifier = Modifier
-                    .width(extendWidth)
-                    .heightIn(max = 240.dp),
-                shape = BuckwheatDesignSystem.Shapes.button,
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 3.dp,
-                shadowElevation = 4.dp,
-            ) {
-                LazyColumn(
-                    userScrollEnabled = true,
-                    contentPadding = PaddingValues(vertical = 8.dp),
+            BuckwheatTheme {
+                Surface(
+                    modifier = Modifier
+                        .width(extendWidth)
+                        .heightIn(max = 240.dp),
+                    shape = BuckwheatDesignSystem.Shapes.button,
+                    color = BuckwheatDesignSystem.Colors.cardContainerHigh,
+                    border = BuckwheatDesignSystem.Colors.cardBorder,
+                    shadowElevation = BuckwheatDesignSystem.Elevation.card,
                 ) {
-                    items(
-                        items = filteredItems,
-                        key = { it }
-                    ) { suggestion ->
-                        SuggestItemRow(
-                            name = suggestion,
-                            onClick = {
-                                close(suggestion)
-                            }
-                        )
+                    LazyColumn(
+                        userScrollEnabled = true,
+                        contentPadding = PaddingValues(vertical = BuckwheatDesignSystem.Spacing.xs),
+                    ) {
+                        items(
+                            items = filteredItems,
+                            key = { it }
+                        ) { suggestion ->
+                            SuggestItemRow(
+                                name = suggestion,
+                                onClick = {
+                                    close(suggestion)
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -298,18 +302,25 @@ private fun SuggestItemRow(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .clickable(onClick = onClick)
             .fillMaxWidth()
-            .heightIn(42.dp)
-            .padding(start = 24.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            .padding(horizontal = BuckwheatDesignSystem.Spacing.l, vertical = BuckwheatDesignSystem.Spacing.m),
     ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_label),
+            contentDescription = null,
+            modifier = Modifier.size(BuckwheatDesignSystem.Controls.iconSmall),
+            tint = BuckwheatDesignSystem.Colors.textSecondary,
+        )
+        Spacer(modifier = Modifier.width(BuckwheatDesignSystem.Spacing.s))
         Text(
             text = name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = BuckwheatDesignSystem.Colors.textPrimary,
             overflow = TextOverflow.Ellipsis,
             softWrap = false,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
 }
