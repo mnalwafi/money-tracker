@@ -88,6 +88,7 @@ fun ViewerHistory(
                 History(
                     modifier = Modifier.weight(1f),
                     readOnly = false,
+                    showBudgetInfo = false,
                     onClose = onClose,
                 )
             }

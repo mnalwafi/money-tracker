@@ -159,11 +159,10 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(BuckwheatDesignSystem.Spacing.s))
                 }
 
-                // Quick-Add Sticky Action Bar with swipe-down dismissal
+                // Quick-Add Sticky Action Bar
                 QuickAddBottomBar(
                     onQuickAdd = onQuickAdd,
                     bottomPadding = navigationBarHeight,
-                    modifier = Modifier.sheetDragDownGesture(sheetState, coroutineScope, onClose),
                 )
             }
         }
@@ -653,6 +652,8 @@ private fun UpcomingBillsSection(
     currency: com.danilkinkin.buckwheat.data.ExtendCurrency,
     onManageRecurring: () -> Unit,
 ) {
+    if (upcomingBills.isEmpty()) return
+
     val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -676,56 +677,23 @@ private fun UpcomingBillsSection(
             }
         }
 
-        if (upcomingBills.isEmpty()) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onManageRecurring),
-                shape = BuckwheatDesignSystem.Shapes.card,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                border = BuckwheatDesignSystem.Colors.cardBorder,
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_autorenew),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp),
-                    )
-                    Text(
-                        text = stringResource(R.string.dashboard_upcoming_no_bills),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                items(upcomingBills, key = { it.id }) { item ->
-                    UpcomingBillCard(
-                        item = item,
-                        currency = currency,
-                        onClick = onManageRecurring,
-                    )
-                }
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            items(upcomingBills, key = { it.id }) { item ->
+                UpcomingBillCard(
+                    item = item,
+                    currency = currency,
+                    onClick = onManageRecurring,
+                )
             }
         }
     }
 }
 
 /**
- * Individual card representation of an upcoming bill with urgency-coded pill and icon avatar.
+ * Clean typographic card for an upcoming bill without circular icon avatars or pill wrappers.
  */
 @Composable
 private fun UpcomingBillCard(
@@ -739,73 +707,35 @@ private fun UpcomingBillCard(
     val urgencyColor = when {
         daysUntil <= 0 -> colorBad
         daysUntil <= 2 -> colorNotGood
-        else -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    val dueText = when {
+        daysUntil <= 0 -> stringResource(R.string.due_today)
+        else -> pluralStringResource(R.plurals.due_in_days, daysUntil.toInt(), daysUntil.toInt())
     }
 
     Card(
         modifier = Modifier
-            .width(170.dp)
+            .width(160.dp)
             .clickable(onClick = onClick),
-        shape = BuckwheatDesignSystem.Shapes.cardItem,
+        shape = BuckwheatDesignSystem.Shapes.button,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         border = BuckwheatDesignSystem.Colors.cardBorder,
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Due badge & avatar row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(urgencyColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_autorenew),
-                        contentDescription = null,
-                        tint = urgencyColor,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-
-                val dueText = when {
-                    daysUntil <= 0 -> stringResource(R.string.due_today)
-                    else -> pluralStringResource(R.plurals.due_in_days, daysUntil.toInt(), daysUntil.toInt())
-                }
-
-                Surface(
-                    shape = CircleShape,
-                    color = urgencyColor.copy(alpha = 0.12f),
-                ) {
-                    Text(
-                        text = dueText,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = urgencyColor,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        maxLines = 1,
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
             Text(
                 text = item.name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = numberFormat(context, item.amount, currency, trimDecimalPlaces = true),
@@ -814,19 +744,20 @@ private fun UpcomingBillCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = item.interval.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = dueText,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Medium,
+                color = urgencyColor,
             )
         }
     }
 }
 
 /**
- * Section presenting latest transactions for immediate review.
+ * Clean list presenting recent transactions without icon avatar bubbles.
  */
 @Composable
 private fun RecentActivitySection(
@@ -835,6 +766,8 @@ private fun RecentActivitySection(
     onEditTransaction: (Transaction) -> Unit,
     onViewHistory: () -> Unit,
 ) {
+    if (recentTransactions.isEmpty()) return
+
     val context = LocalContext.current
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -858,45 +791,27 @@ private fun RecentActivitySection(
             }
         }
 
-        if (recentTransactions.isEmpty()) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = BuckwheatDesignSystem.Shapes.cardItem,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                border = BuckwheatDesignSystem.Colors.cardBorder,
-            ) {
-                Text(
-                    text = stringResource(R.string.dashboard_recent_no_transactions),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(16.dp),
-                )
-            }
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = BuckwheatDesignSystem.Shapes.cardHero,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                border = BuckwheatDesignSystem.Colors.cardBorder,
-            ) {
-                Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                    recentTransactions.forEachIndexed { index, transaction ->
-                        androidx.compose.runtime.key(transaction.uid) {
-                            RecentTransactionRow(
-                                transaction = transaction,
-                                currency = currency,
-                                onClick = { onEditTransaction(transaction) },
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = BuckwheatDesignSystem.Shapes.button,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            ),
+            border = BuckwheatDesignSystem.Colors.cardBorder,
+        ) {
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                recentTransactions.forEachIndexed { index, transaction ->
+                    androidx.compose.runtime.key(transaction.uid) {
+                        RecentTransactionRow(
+                            transaction = transaction,
+                            currency = currency,
+                            onClick = { onEditTransaction(transaction) },
+                        )
+                        if (index < recentTransactions.size - 1) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
                             )
-                            if (index < recentTransactions.size - 1) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-                                )
-                            }
                         }
                     }
                 }
@@ -906,7 +821,7 @@ private fun RecentActivitySection(
 }
 
 /**
- * Individual row displaying transaction details.
+ * Individual row displaying transaction details with clean typography matching SpentItem.
  */
 @Composable
 private fun RecentTransactionRow(
@@ -921,58 +836,36 @@ private fun RecentTransactionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isIncome) colorGood.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(if (isIncome) R.drawable.ic_balance_wallet else R.drawable.ic_money),
-                    contentDescription = null,
-                    tint = if (isIncome) colorGood else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp),
-                )
+        Column(modifier = Modifier.weight(1f)) {
+            val title = if (transaction.comment.isNotEmpty()) {
+                transaction.comment
+            } else {
+                stringResource(if (isIncome) R.string.dashboard_income_label else R.string.dashboard_expense_label)
             }
-
-            Column {
-                val title = if (transaction.comment.isNotEmpty()) {
-                    transaction.comment
-                } else {
-                    stringResource(if (isIncome) R.string.dashboard_income_label else R.string.dashboard_expense_label)
-                }
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = prettyDate(transaction.date, human = true, shortMonth = true),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = prettyDate(transaction.date, human = true, shortMonth = true),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         val prefix = if (isIncome) "+" else "-"
         Text(
             text = "$prefix${numberFormat(context, transaction.value, currency)}",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
             color = if (isIncome) colorGood else MaterialTheme.colorScheme.onSurface,
         )

@@ -52,6 +52,7 @@ fun History(
     appViewModel: AppViewModel = viewModel(),
     editorViewModel: EditorViewModel = viewModel(),
     readOnly: Boolean = false,
+    showBudgetInfo: Boolean = true,
     onClose: () -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
@@ -289,7 +290,7 @@ fun History(
                     }
                 }
 
-                if (!readOnly) {
+                if (!readOnly && showBudgetInfo) {
                     item("budget-info") {
                         WholeBudgetCard(
                             modifier = Modifier.padding(top = 16.dp, start = 16.dp, end = 16.dp),
