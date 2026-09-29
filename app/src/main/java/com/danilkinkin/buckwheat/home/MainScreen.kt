@@ -44,6 +44,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -51,6 +52,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -193,15 +195,47 @@ fun MainScreen(
         }
 
         val isShowSystemKeyboard = appViewModel.showSystemKeyboard.value
+        var isSystemKeyboardOpened by remember { mutableStateOf(false) }
+
+        // Ensure system keyboard has actually opened on screen before adjusting editor height
+        LaunchedEffect(isShowSystemKeyboard, imeCurrentPx, imeTargetPx) {
+            if (!isShowSystemKeyboard) {
+                isSystemKeyboardOpened = false
+            } else {
+                val isThresholdReached = if (rememberedImeHeight > 0f) {
+                    imeCurrentPx >= rememberedImeHeight * 0.7f
+                } else if (imeTargetPx > 0f) {
+                    imeCurrentPx >= imeTargetPx * 0.7f
+                } else {
+                    imeCurrentPx > 0f
+                }
+
+                if (isThresholdReached) {
+                    isSystemKeyboardOpened = true
+                }
+            }
+        }
+
+        LaunchedEffect(isShowSystemKeyboard) {
+            if (isShowSystemKeyboard) {
+                // Fallback: Ensure keyboard opens first (typical IME open window is ~150-220ms)
+                delay(220)
+                isSystemKeyboardOpened = true
+            } else {
+                isSystemKeyboardOpened = false
+            }
+        }
+
+        val isKeyboardHeightAdjusted = isShowSystemKeyboard && isSystemKeyboardOpened
         val targetSystemKeyboardHeight = if (rememberedImeHeight > 0f) rememberedImeHeight else internalKeyboardHeight
 
-        val currentKeyboardHeight = if (isShowSystemKeyboard) {
+        val currentKeyboardHeight = if (isKeyboardHeightAdjusted) {
             targetSystemKeyboardHeight
         } else {
             internalKeyboardHeight
         }
 
-        val currentKeyboardPadding = if (isShowSystemKeyboard) {
+        val currentKeyboardPadding = if (isKeyboardHeightAdjusted) {
             with(localDensity) { 16.dp.toPx() }
         } else {
             with(localDensity) { keyboardAdditionalOffset.toPx() }
@@ -255,7 +289,7 @@ fun MainScreen(
                     .weight(1f)
             ) {
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !isShowSystemKeyboard,
+                    visible = !isKeyboardHeightAdjusted,
                     enter = fadeIn(
                         tween(
                             durationMillis = 150,
