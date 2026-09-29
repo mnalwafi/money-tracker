@@ -77,7 +77,7 @@ fun BottomSheets(
         DashboardScreen(
             sheetState = state,
             onQuickAdd = {
-                coroutineScope.launch { state.hide() }
+                appViewModel.closeSheet(DASHBOARD_SHEET)
             },
             onOpenRecurring = {
                 appViewModel.openSheet(PathState(RECURRING_TRANSACTIONS_SHEET))
@@ -89,14 +89,14 @@ fun BottomSheets(
                 appViewModel.openSheet(PathState(WALLET_SHEET))
             },
             onReviewPending = {
-                coroutineScope.launch { state.hide() }
+                appViewModel.closeSheet(DASHBOARD_SHEET)
             },
             onEditTransaction = { transaction ->
                 editorViewModel.startEditingSpent(transaction)
-                coroutineScope.launch { state.hide() }
+                appViewModel.closeSheet(DASHBOARD_SHEET)
             },
             onClose = {
-                coroutineScope.launch { state.hide() }
+                appViewModel.closeSheet(DASHBOARD_SHEET)
             },
         )
     }
@@ -176,7 +176,7 @@ fun BottomSheets(
                 coroutineScope.launch { state.callback(emptyMap()) }
             },
             onClose = {
-                coroutineScope.launch { state.hide() }
+                appViewModel.closeSheet(SETTINGS_SHEET)
             },
         )
     }

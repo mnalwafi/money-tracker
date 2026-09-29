@@ -198,6 +198,7 @@ fun ModalBottomSheetLayout(
                     }
                 },
                 visible = sheetState.targetValue != ModalBottomSheetValue.Hidden,
+                sheetState = sheetState,
                 predictiveBackProgress = predictiveBackProgress
             )
         }
@@ -290,11 +291,13 @@ private fun Modifier.bottomSheetSwipeable(
     return this.then(modifier)
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun Scrim(
     color: Color,
     onDismiss: () -> Unit,
     visible: Boolean,
+    sheetState: ModalBottomSheetState,
     predictiveBackProgress: Float = 0f
 ) {
     if (color.isSpecified) {
@@ -303,7 +306,7 @@ private fun Scrim(
             animationSpec = TweenSpec()
         )
 
-        val dismissModifier = if (visible) {
+        val dismissModifier = if (visible && (alpha > 0.35f || sheetState.currentValue != ModalBottomSheetValue.Hidden)) {
             Modifier
                 .pointerInput(onDismiss) { detectTapGestures { onDismiss() } }
                 .semantics(mergeDescendants = true) {

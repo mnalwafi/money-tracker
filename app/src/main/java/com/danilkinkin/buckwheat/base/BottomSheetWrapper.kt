@@ -68,22 +68,32 @@ fun BottomSheetWrapper(
     observeLiveData(appViewModel.sheetStates) { sheets ->
         if (sheets.containsKey(name)) {
             state.bindCallback(sheets[name]!!.callback)
-            coroutineScope.launch { state.show(sheets[name]!!.args) }
+            state.show(sheets[name]!!.args)
+            coroutineScope.launch {
+                state.realShow()
+            }
         } else if (state.targetValue !== ModalBottomSheetValue.Hidden) {
             coroutineScope.launch { state.hide() }
         }
     }
 
     DisposableEffect(state.render) {
-        if (state.render) coroutineScope.launch { state.realShow() }
+        if (state.render && state.targetValue !== ModalBottomSheetValue.Expanded) {
+            coroutineScope.launch { state.realShow() }
+        }
 
         onDispose { }
     }
 
     DisposableEffect(state.currentValue) {
         if (state.currentValue === ModalBottomSheetValue.Hidden) {
-            state.render = false
-            appViewModel.closeSheet(name)
+            val isRequestedOpen = appViewModel.sheetStates.value?.containsKey(name) == true
+            if (!isRequestedOpen) {
+                state.render = false
+                appViewModel.closeSheet(name)
+            } else {
+                coroutineScope.launch { state.realShow() }
+            }
         }
 
         onDispose { }
