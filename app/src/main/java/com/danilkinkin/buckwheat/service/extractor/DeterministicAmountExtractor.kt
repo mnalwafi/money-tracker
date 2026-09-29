@@ -59,6 +59,7 @@ class DeterministicAmountExtractor @Inject constructor() {
         // Expense merchant patterns
         private val EXPENSE_MERCHANT_PATTERNS = listOf(
             Pattern.compile("""(?i)(?:payment\s+for\s+(?:subscribtion|subscription)\s+to|payment\s+for|subscription\s+to|subscribtion\s+to|paid\s+to|paid\s+at|payment\s+to|payment\s+at|purchase\s+at|transaksi\s+pembelian(?:\s+di|\s+ke)?|pembelian(?:\s+di|\s+ke)?|pembayaran\s+(?:qris\s+)?(?:ke|di)|bayar\s+(?:ke|di)|transaksi\s+(?:di|ke))\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:Rp\.?|IDR|USD|EUR|[$€£¥₹₩₺₽฿₫]|\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b)|[\.,]|$)"""),
+            Pattern.compile("""(?i)(?:(?:nomor\s+)?rekening\s+tujuan|rek\s+tujuan|tujuan\s+transfer|transfer\s+ke)\s+([A-Za-z0-9*xX\s&'.-]{2,35}?)(?=\s+(?:Rp\.?|IDR|USD|EUR|[$€£¥₹₩₺₽฿₫]|\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully)\b)|[\.,]|$)"""),
             Pattern.compile("""(?i)(?:at|to|in|for|di|ke)\s+([A-Za-z0-9\s&'.-]{2,35}?)(?=\s+(?:Rp\.?|IDR|USD|EUR|[$€£¥₹₩₺₽฿₫]|\b(?:is|was|on|via|using|from|with|date|ref|amount|sebesar|berhasil|completed|complete|success|successful|successfully|subscription|subscribtion)\b)|[\.,]|$)""")
         )
 
@@ -329,7 +330,9 @@ class DeterministicAmountExtractor @Inject constructor() {
             .trimStart('.', ',', '!', '?', ';', ':', '-', ' ')
             .replace(Regex("""^(the|pt|cv|toko)\s+""", RegexOption.IGNORE_CASE), "")
             .trim()
-        if (cleaned.all { it.isDigit() }) return ""
+        if (cleaned.all { it.isDigit() }) {
+            return if (cleaned.length >= 6) cleaned else ""
+        }
         if (cleaned.matches(Regex("""^(?:Rp\.?|IDR|USD|EUR)\b.*""", RegexOption.IGNORE_CASE))) return ""
         return cleaned
     }

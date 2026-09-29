@@ -64,7 +64,8 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
         private val STRONG_EXPENSE_PATTERNS = listOf(
             Pattern.compile("""\b(spent|debited(\s+(with|by|from))?|paid(\s+to)?|payment(\s+(to|of|for))?|purchase\s+(at|of|for)|purchased)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi\s+(?:di\s+[A-Za-z0-9]|ke\s+[A-Za-z0-9]|sebesar|berhasil|sukses|selesai|pembelian|debit)|berhasil\s+bayar)\b""", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("""\b(transfer\s+(ke|out\s+to)|sent\s+to|debit\s+alert|card\s+ending\s+in)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(transfer\s+(ke|out\s+to|keluar)|sent\s+to|debit\s+alert|card\s+ending\s+in|(?:nomor\s+)?rekening\s+tujuan|rek\s+tujuan|tujuan\s+transfer)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""(?s)\btransfer\s+dari\b.*?\b(?:rekening\s+tujuan|rek\s+tujuan|ke\b|sebesar|berhasil|sukses)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(potongan\s+sebesar|terpotong\s+sebesar|tagihan\s+lunas)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(pembelian(\s+qris)?|transaksi\s+pembelian|transaksi\s+qris|bayar\s+qris|qris\s+sebesar|qris\s+berhasil)\b""", Pattern.CASE_INSENSITIVE)
         )
@@ -79,7 +80,7 @@ class RuleBasedClassifierFallback @Inject constructor() : TransactionClassifier 
             Pattern.compile("""\b(received(\s+.{1,35})?\s+from|received\s+money|credited(\s+(with|by|to))?|salary\s+credited)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(deposit\s+successful|inward\s+transfer|transfer\s+masuk|dana(\s+.{1,30})?\s+masuk)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(menerima\s+transfer|uang(\s+.{1,30})?\s+masuk|top[-\s]?up\s+berhasil|topup\s+success)\b""", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("""\b(transfer\s+dari|received\s+payment|credit\s+alert|pengembalian\s+dana|gaji)\b""", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("""\b(transfer\s+masuk(\s+dari)?|received\s+payment|credit\s+alert|pengembalian\s+dana|gaji)\b""", Pattern.CASE_INSENSITIVE),
             Pattern.compile("""\b(refund\s+(from|processed|of)?|cashback\s+credited)\b""", Pattern.CASE_INSENSITIVE)
         )
 

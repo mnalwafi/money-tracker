@@ -383,4 +383,20 @@ class HybridTransactionCaptureTest {
         assertEquals(BigDecimal("50000.00"), extracted?.amount)
         assertEquals("Alfamart", extracted?.merchant)
     }
+
+    @Test
+    fun pipeline_briOutgoingTransfer_extractedAccurately() {
+        val title = "BRImo"
+        val text = "29/09/2026 15:00:41 - Transfer dari\n\nXXXXXXXXXXX3539 dengan nomor rekening tujuan XXXXXXXXXXX2503 sebesar Rp5.000.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017"
+        val classification = classifier.classify("$title $text")
+
+        assertEquals(TransactionClassificationType.EXPENSE, classification.type)
+        assertTrue("Confidence must be >= 0.70, was ${classification.confidence}", classification.confidence >= 0.70f)
+
+        val extracted = extractor.extract(text = text, title = title, isIncome = false)
+        assertNotNull(extracted)
+        assertEquals(BigDecimal("5000000.00"), extracted?.amount)
+        assertEquals("XXXXXXXXXXX2503", extracted?.merchant)
+        assertEquals("Rp", extracted?.currencySymbol)
+    }
 }

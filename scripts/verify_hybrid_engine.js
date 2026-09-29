@@ -50,7 +50,8 @@ const FINANCIAL_NEWS_MARKET_PATTERNS = [
 const STRONG_EXPENSE_PATTERNS = [
     /\b(spent|debited(\s+(with|by|from))?|paid(\s+to)?|payment(\s+(to|of|for))?|purchase\s+(at|of|for)|purchased)\b/i,
     /\b(bayar(\s+(ke|di))?|pembayaran(\s+(ke|di))?|transaksi\s+(?:di\s+[A-Za-z0-9]|ke\s+[A-Za-z0-9]|sebesar|berhasil|sukses|selesai|pembelian|debit)|berhasil\s+bayar)\b/i,
-    /\b(transfer\s+(ke|out\s+to)|sent\s+to|debit\s+alert|card\s+ending\s+in)\b/i,
+    /\b(transfer\s+(ke|out\s+to|keluar)|sent\s+to|debit\s+alert|card\s+ending\s+in|(?:nomor\s+)?rekening\s+tujuan|rek\s+tujuan|tujuan\s+transfer)\b/i,
+    /\btransfer\s+dari[\s\S]*?(?:rekening\s+tujuan|rek\s+tujuan|ke\b|sebesar|berhasil|sukses)\b/i,
     /\b(potongan\s+sebesar|terpotong\s+sebesar|tagihan\s+lunas)\b/i,
     /\b(pembelian(\s+qris)?|transaksi\s+pembelian|transaksi\s+qris|bayar\s+qris|qris\s+sebesar|qris\s+berhasil)\b/i
 ];
@@ -61,7 +62,7 @@ const STRONG_INCOME_PATTERNS = [
     /\b(received(\s+.{1,35})?\s+from|received\s+money|credited(\s+(with|by|to))?|salary\s+credited)\b/i,
     /\b(deposit\s+successful|inward\s+transfer|transfer\s+masuk|dana(\s+.{1,30})?\s+masuk)\b/i,
     /\b(menerima\s+transfer|uang(\s+.{1,30})?\s+masuk|top[-\s]?up\s+berhasil|topup\s+success)\b/i,
-    /\b(transfer\s+dari|received\s+payment|credit\s+alert|pengembalian\s+dana|gaji)\b/i,
+    /\b(transfer\s+masuk(\s+dari)?|received\s+payment|credit\s+alert|pengembalian\s+dana|gaji)\b/i,
     /\b(refund\s+(from|processed|of)?|cashback\s+credited)\b/i
 ];
 
@@ -334,6 +335,17 @@ const sobatBriMatch = sobatBriIncome.match(PREFIX_PATTERN);
 assert.ok(sobatBriMatch, "Must match prefix currency pattern for Rp12.000.000");
 assert.strictEqual(parseAmountString(sobatBriMatch[2], sobatBriMatch[1]), "12000000.00");
 console.log(`✓ Sobat BRI notification correctly parsed as: [${sobatBriClass.type}] ${(sobatBriClass.confidence * 100).toFixed(1)}% -> 12000000.00 IDR`);
+
+// Test 5e: BRI Outgoing Transfer notification from user
+const briTransferOut = "29/09/2026 15:00:41 - Transfer dari\n\nXXXXXXXXXXX3539 dengan nomor rekening tujuan XXXXXXXXXXX2503 sebesar Rp5.000.000,00 BERHASIL. Info lebih lanjut hubungi Call Center BRI 1500017";
+const briTransferClass = classify(briTransferOut);
+assert.strictEqual(briTransferClass.type, 'EXPENSE', `Expected EXPENSE for BRI outgoing transfer: ${briTransferOut}`);
+assert.ok(briTransferClass.confidence >= 0.70, `Expected high confidence >= 0.70, got ${briTransferClass.confidence}`);
+
+const briTransferMatch = briTransferOut.match(PREFIX_PATTERN);
+assert.ok(briTransferMatch, "Must match prefix currency pattern for Rp5.000.000,00");
+assert.strictEqual(parseAmountString(briTransferMatch[2], briTransferMatch[1]), "5000000.00");
+console.log(`✓ BRI Outgoing Transfer notification correctly parsed as: [${briTransferClass.type}] ${(briTransferClass.confidence * 100).toFixed(1)}% -> 5000000.00 IDR`);
 
 // Test 6: Cross-App Payment Gateway Correlation (e.g. BRImo -> Google Pay -> Google One)
 const GATEWAY_DEFINITIONS = [
