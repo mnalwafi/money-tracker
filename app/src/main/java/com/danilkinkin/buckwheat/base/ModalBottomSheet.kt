@@ -177,6 +177,7 @@ fun ModalBottomSheetLayout(
     sheetContentColor: Color = contentColorFor(sheetBackgroundColor),
     scrimColor: Color = ModalBottomSheetDefaults.scrimColor,
     cancelable: Boolean = true,
+    onDismissRequest: () -> Unit = {},
     predictiveBackProgress: Float = 0f,
     content: @Composable () -> Unit
 ) {
@@ -194,6 +195,7 @@ fun ModalBottomSheetLayout(
                 color = scrimColor,
                 onDismiss = {
                     if (cancelable && sheetState.confirmStateChange(ModalBottomSheetValue.Hidden)) {
+                        onDismissRequest()
                         scope.launch { sheetState.hide() }
                     }
                 },
@@ -306,7 +308,7 @@ private fun Scrim(
             animationSpec = TweenSpec()
         )
 
-        val dismissModifier = if (visible && (alpha > 0.35f || sheetState.currentValue != ModalBottomSheetValue.Hidden)) {
+        val dismissModifier = if (visible && sheetState.currentValue != ModalBottomSheetValue.Hidden) {
             Modifier
                 .pointerInput(onDismiss) { detectTapGestures { onDismiss() } }
                 .semantics(mergeDescendants = true) {

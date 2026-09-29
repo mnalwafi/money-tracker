@@ -87,8 +87,7 @@ fun BottomSheetWrapper(
 
     DisposableEffect(state.currentValue) {
         if (state.currentValue === ModalBottomSheetValue.Hidden) {
-            val isRequestedOpen = appViewModel.sheetStates.value?.containsKey(name) == true
-            if (!isRequestedOpen) {
+            if (state.targetValue === ModalBottomSheetValue.Hidden) {
                 state.render = false
                 appViewModel.closeSheet(name)
             } else {
@@ -147,6 +146,9 @@ fun BottomSheetWrapper(
     ModalBottomSheetLayout(
         modifier = modifier,
         cancelable = cancelable,
+        onDismissRequest = {
+            appViewModel.closeSheet(name)
+        },
         sheetBackgroundColor = MaterialTheme.colorScheme.surface,
         sheetState = state,
         predictiveBackProgress = predictiveBackProgress,
