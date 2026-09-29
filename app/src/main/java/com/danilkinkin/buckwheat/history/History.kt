@@ -32,6 +32,8 @@ import com.danilkinkin.buckwheat.editor.EditorViewModel
 import com.danilkinkin.buckwheat.analytics.WholeBudgetCard
 import com.danilkinkin.buckwheat.ui.BuckwheatTheme
 import com.danilkinkin.buckwheat.ui.colorEditor
+import com.danilkinkin.buckwheat.ui.colorOnEditor
+import androidx.compose.ui.graphics.Color
 import com.danilkinkin.buckwheat.data.ExtendCurrency
 import com.danilkinkin.buckwheat.util.isSameDay
 import com.danilkinkin.buckwheat.util.observeLiveData
@@ -53,6 +55,8 @@ fun History(
     editorViewModel: EditorViewModel = viewModel(),
     readOnly: Boolean = false,
     showBudgetInfo: Boolean = true,
+    backgroundColor: Color = colorEditor,
+    contentColor: Color = colorOnEditor,
     onClose: () -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
@@ -193,6 +197,7 @@ fun History(
                         RowEntityType.DayTotal -> TotalPerDay(
                             spentPerDay = row.dayTotal!!,
                             currency = currency.value,
+                            textColor = contentColor,
                         )
                         RowEntityType.Spent -> if (!readOnly) SwipeActions(
                             startActionsConfig = SwipeActionsConfig(
@@ -263,7 +268,7 @@ fun History(
                                             )
                                         )
                                         .clip(RoundedCornerShape(size)),
-                                    color = colorEditor,
+                                    color = backgroundColor,
                                     shape = RoundedCornerShape(
                                         topStart = startCorners,
                                         bottomStart = startCorners,
@@ -277,14 +282,16 @@ fun History(
                                 ) {
                                     SpentItem(
                                         transaction = row.transaction!!,
-                                        currency = currency.value
+                                        currency = currency.value,
+                                        textColor = contentColor,
                                     )
                                 }
                             }
                         } else {
                             SpentItem(
                                 transaction = row.transaction!!,
-                                currency = currency.value
+                                currency = currency.value,
+                                textColor = contentColor,
                             )
                         }
                     }
@@ -315,7 +322,7 @@ fun History(
             }
 
             if (historyList.isEmpty()) {
-                NoSpends(Modifier.weight(1f))
+                NoSpends(Modifier.weight(1f), textColor = contentColor)
             }
         }
 

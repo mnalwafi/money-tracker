@@ -14,7 +14,10 @@ import com.danilkinkin.buckwheat.ui.BuckwheatTheme
 import com.danilkinkin.buckwheat.ui.colorOnEditor
 
 @Composable
-fun NoSpends(modifier: Modifier = Modifier) {
+fun NoSpends(
+    modifier: Modifier = Modifier,
+    textColor: androidx.compose.ui.graphics.Color = colorOnEditor,
+) {
     Box(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -22,7 +25,7 @@ fun NoSpends(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.no_spends),
             style = MaterialTheme.typography.bodyMedium,
-            color = colorOnEditor.copy(alpha = 0.7f)
+            color = textColor.copy(alpha = 0.7f)
         )
     }
 }

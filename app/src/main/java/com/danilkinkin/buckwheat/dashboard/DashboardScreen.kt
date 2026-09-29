@@ -652,10 +652,6 @@ private fun UpcomingBillsSection(
     currency: com.danilkinkin.buckwheat.data.ExtendCurrency,
     onManageRecurring: () -> Unit,
 ) {
-    if (upcomingBills.isEmpty()) return
-
-    val context = LocalContext.current
-
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -677,16 +673,36 @@ private fun UpcomingBillsSection(
             }
         }
 
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            items(upcomingBills, key = { it.id }) { item ->
-                UpcomingBillCard(
-                    item = item,
-                    currency = currency,
-                    onClick = onManageRecurring,
+        if (upcomingBills.isEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onManageRecurring),
+                shape = BuckwheatDesignSystem.Shapes.button,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+                border = BuckwheatDesignSystem.Colors.cardBorder,
+            ) {
+                Text(
+                    text = stringResource(R.string.dashboard_upcoming_no_bills),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 )
+            }
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                items(upcomingBills, key = { it.id }) { item ->
+                    UpcomingBillCard(
+                        item = item,
+                        currency = currency,
+                        onClick = onManageRecurring,
+                    )
+                }
             }
         }
     }

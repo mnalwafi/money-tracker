@@ -20,6 +20,7 @@ import com.danilkinkin.buckwheat.R
 fun TotalPerDay(
     spentPerDay: BigDecimal,
     currency: ExtendCurrency,
+    textColor: androidx.compose.ui.graphics.Color = colorOnEditor,
 ) {
     val context = LocalContext.current
     
@@ -37,13 +38,13 @@ fun TotalPerDay(
         Text(
             text = stringResource(R.string.total_per_day),
             style = MaterialTheme.typography.titleMedium,
-            color = colorOnEditor.copy(alpha = 0.7f),
+            color = textColor.copy(alpha = 0.7f),
         )
         Spacer(Modifier.width(4.dp))
         Text(
             text = numberFormat(context, spentPerDay, currency = currency),
             style = MaterialTheme.typography.titleMedium,
-            color = colorOnEditor,
+            color = textColor,
         )
     }
 }

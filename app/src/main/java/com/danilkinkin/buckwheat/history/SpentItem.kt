@@ -26,6 +26,7 @@ fun SpentItem(
     transaction: Transaction,
     currency: ExtendCurrency,
     modifier: Modifier = Modifier,
+    textColor: androidx.compose.ui.graphics.Color = colorOnEditor,
 ) {
     val context = LocalContext.current
     Column(Modifier.padding(bottom = 14.dp)) {
@@ -39,7 +40,7 @@ fun SpentItem(
                     text = numberFormat(context = context, transaction.value, currency = currency),
                     style = MaterialTheme.typography.headlineMedium,
                     fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                    color = colorOnEditor,
+                    color = textColor,
                     softWrap = false,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier,
@@ -56,7 +57,7 @@ fun SpentItem(
                         ),
                     text = prettyDate(transaction.date, shortMonth = true),
                     style = MaterialTheme.typography.labelSmall,
-                    color = colorOnEditor,
+                    color = textColor,
                     softWrap = false,
                 )
             }
@@ -66,7 +67,7 @@ fun SpentItem(
                 modifier = Modifier.padding( horizontal = 32.dp),
                 text = transaction.comment,
                 style = MaterialTheme.typography.bodyMedium,
-                color = colorOnEditor.copy(alpha = 0.7f),
+                color = textColor.copy(alpha = 0.7f),
                 softWrap = true,
             )
         }

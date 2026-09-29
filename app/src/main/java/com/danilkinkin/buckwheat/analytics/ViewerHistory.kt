@@ -89,6 +89,8 @@ fun ViewerHistory(
                     modifier = Modifier.weight(1f),
                     readOnly = false,
                     showBudgetInfo = false,
+                    backgroundColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     onClose = onClose,
                 )
             }
