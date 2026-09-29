@@ -80,11 +80,15 @@ class ExpenseNotificationListenerService : NotificationListenerService() {
         val notification = sbn.notification ?: return
         val extras = notification.extras ?: return
 
-        // Ignore social and messaging notifications from non-financial apps
+        // Ignore social and messaging notifications from non-financial and non-SMS apps
         val category = notification.category
         val isChatNotification = category == Notification.CATEGORY_MESSAGE || category == Notification.CATEGORY_SOCIAL
         val isKnownFinance = HybridTransactionCaptureEngine.KNOWN_FINANCE_PACKAGES.contains(sbn.packageName)
-        if (isChatNotification && !isKnownFinance) {
+        val isSmsApp = sbn.packageName == "com.google.android.apps.messaging" ||
+                sbn.packageName == "com.android.mms" ||
+                sbn.packageName == "com.samsung.android.messaging" ||
+                sbn.packageName == "com.android.messaging"
+        if (isChatNotification && !isKnownFinance && !isSmsApp) {
             return
         }
 
