@@ -308,12 +308,31 @@ private fun Scrim(
             animationSpec = TweenSpec()
         )
 
-        val dismissModifier = if (visible && sheetState.currentValue != ModalBottomSheetValue.Hidden) {
+        val openStartTime = remember(visible) {
+            if (visible) android.os.SystemClock.uptimeMillis() else 0L
+        }
+
+        val dismissModifier = if (visible) {
             Modifier
-                .pointerInput(onDismiss) { detectTapGestures { onDismiss() } }
+                .pointerInput(onDismiss) {
+                    detectTapGestures {
+                        val elapsed = android.os.SystemClock.uptimeMillis() - openStartTime
+                        if (elapsed > 350L) {
+                            onDismiss()
+                        }
+                    }
+                }
                 .semantics(mergeDescendants = true) {
                     contentDescription = null.toString()
-                    onClick { onDismiss(); true }
+                    onClick {
+                        val elapsed = android.os.SystemClock.uptimeMillis() - openStartTime
+                        if (elapsed > 350L) {
+                            onDismiss()
+                            true
+                        } else {
+                            false
+                        }
+                    }
                 }
         } else {
             Modifier
